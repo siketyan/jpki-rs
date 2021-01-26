@@ -1,0 +1,4 @@
+[submodule "lib/pkcs11"]
+	path = lib/pkcs11
+	url = https://github.com/siketyan/rust-pkcs11
+	branch = optional-functions

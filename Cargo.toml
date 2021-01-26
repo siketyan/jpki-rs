@@ -1,0 +1,13 @@
+[package]
+name = "jpki-rs"
+version = "0.1.0"
+authors = ["Naoki Ikeguchi <root@siketyan.dev>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pkcs11 = { path = "./lib/pkcs11" }
+
+libloading = "0.6.7"
+thiserror = "1.0.23"
