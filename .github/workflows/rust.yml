@@ -17,6 +17,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
 
       - name: Install GNU tar
         if: ${{ runner.os == 'macOS' }}
