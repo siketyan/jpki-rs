@@ -51,7 +51,8 @@ where
     ) -> Result<Vec<u8>, apdu::Error> {
         self.verify_sign_pin(ctx, pin)
             .and_then(|_| self.card.select_ef(ctx, ty.into_efid().into()))
-            .and_then(|_| self.card.read(ctx, None))
+            .and_then(|_| self.read_certificate_size(ctx))
+            .and_then(|size| self.card.read(ctx, Some(size)))
     }
 
     pub fn sign(&self, ctx: Ctx, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
@@ -64,5 +65,26 @@ where
         self.card
             .select_ef(ctx, EF_SIGN_PIN.into())
             .and_then(|_| self.card.verify(ctx, pin.into()))
+    }
+
+    fn read_certificate_size(&self, ctx: Ctx) -> Result<u16, apdu::Error> {
+        let header = self.card.read(ctx, Some(7))?;
+        let mut offset: usize = if header[0] & 0x1f == 0x1f { 2 } else { 1 };
+        let head = header[offset] as u16;
+
+        offset += 1;
+
+        if head & 0x80 == 0 {
+            Ok(head + (offset as u16))
+        } else {
+            let mut size = 0u16;
+            for _ in 0..(head & 0x7f) {
+                size <<= 8;
+                size |= header[offset] as u16;
+                offset += 1;
+            }
+
+            Ok(size + (offset as u16))
+        }
     }
 }
