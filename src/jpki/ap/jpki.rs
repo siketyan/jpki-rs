@@ -1,4 +1,5 @@
 use crate::jpki::card::Card;
+use crate::nfc;
 use crate::nfc::apdu;
 
 const DF_NAME: [u8; 10] = [0xD3, 0x92, 0xF0, 0x00, 0x26, 0x01, 0x00, 0x00, 0x00, 0x01];
@@ -23,32 +24,45 @@ impl CertType {
     }
 }
 
-pub struct JpkiAp<'a> {
-    card: &'a Card,
+pub struct JpkiAp<T, Ctx>
+where
+    T: nfc::Card<Ctx>,
+    Ctx: Copy,
+{
+    card: Box<Card<T, Ctx>>,
 }
 
-impl<'a> JpkiAp<'a> {
-    pub fn open(card: &'a Card) -> Result<Self, apdu::Error> {
+impl<T, Ctx> JpkiAp<T, Ctx>
+where
+    T: nfc::Card<Ctx>,
+    Ctx: Copy,
+{
+    pub fn open(ctx: Ctx, card: Box<Card<T, Ctx>>) -> Result<Self, apdu::Error> {
         let ap = Self { card };
 
-        ap.card.select_df(DF_NAME.into()).map(|_| ap)
+        ap.card.select_df(ctx, DF_NAME.into()).map(|_| ap)
     }
 
-    pub fn read_certificate(&self, ty: CertType) -> Result<Vec<u8>, apdu::Error> {
+    pub fn read_certificate(
+        &self,
+        ctx: Ctx,
+        ty: CertType,
+        pin: Vec<u8>,
+    ) -> Result<Vec<u8>, apdu::Error> {
+        self.verify_sign_pin(ctx, pin)
+            .and_then(|_| self.card.select_ef(ctx, ty.into_efid().into()))
+            .and_then(|_| self.card.read(ctx, None))
+    }
+
+    pub fn sign(&self, ctx: Ctx, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
+        self.verify_sign_pin(ctx, pin)
+            .and_then(|_| self.card.select_ef(ctx, EF_SIGN.into()))
+            .and_then(|_| self.card.sign(ctx, digest))
+    }
+
+    fn verify_sign_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
         self.card
-            .select_ef(ty.into_efid().into())
-            .and_then(|_| self.card.read(None))
-    }
-
-    pub fn sign(&self, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
-        self.verify_sign_pin(pin)
-            .and_then(|_| self.card.select_ef(EF_SIGN.into()))
-            .and_then(|_| self.card.sign(digest))
-    }
-
-    fn verify_sign_pin(&self, pin: Vec<u8>) -> Result<(), apdu::Error> {
-        self.card
-            .select_ef(EF_SIGN_PIN.into())
-            .and_then(|_| self.card.verify(pin.into()))
+            .select_ef(ctx, EF_SIGN_PIN.into())
+            .and_then(|_| self.card.verify(ctx, pin.into()))
     }
 }

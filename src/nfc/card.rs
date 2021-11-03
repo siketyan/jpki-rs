@@ -1,3 +1,3 @@
 use crate::nfc::apdu;
 
-pub trait Card: apdu::Handler {}
+pub trait Card<Ctx>: apdu::Handler<Ctx> {}

@@ -6,6 +6,13 @@ pub struct Response {
 }
 
 impl Response {
+    pub fn new() -> Self {
+        Self {
+            payload: vec![],
+            trailer: (0, 0),
+        }
+    }
+
     pub fn from_bytes(mut bytes: Vec<u8>) -> Self {
         let sw2 = bytes.pop();
         let sw1 = bytes.pop();

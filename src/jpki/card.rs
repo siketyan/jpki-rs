@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use crate::nfc;
 use crate::nfc::apdu;
 use crate::nfc::apdu::CLA_DEFAULT;
@@ -12,30 +14,48 @@ const SIGN_INS: u8 = 0x2A;
 const SIGN_P1: u8 = 0x00;
 const SIGN_P2: u8 = 0x80;
 
-pub struct Card {
-    delegate: Box<dyn nfc::Card>,
+pub struct Card<T, Ctx>
+where
+    T: nfc::Card<Ctx>,
+    Ctx: Copy,
+{
+    delegate: Box<T>,
+    _ctx: PhantomData<Ctx>,
 }
 
-impl Card {
-    pub fn new(delegate: Box<dyn nfc::Card>) -> Self {
-        Self { delegate }
+impl<T, Ctx> Card<T, Ctx>
+where
+    T: nfc::Card<Ctx>,
+    Ctx: Copy,
+{
+    pub fn new(delegate: Box<T>) -> Self {
+        Self {
+            delegate,
+            _ctx: PhantomData,
+        }
     }
 
-    pub fn select_df(&self, name: Vec<u8>) -> Result<(), apdu::Error> {
+    pub fn select_df(&self, ctx: Ctx, name: Vec<u8>) -> Result<(), apdu::Error> {
         self.delegate
-            .handle(apdu::Command::select_file(SELECT_P1_DF, SELECT_P2, name))
+            .handle(
+                ctx,
+                apdu::Command::select_file(SELECT_P1_DF, SELECT_P2, name),
+            )
             .into_result()
             .map(|_| ())
     }
 
-    pub fn select_ef(&self, id: Vec<u8>) -> Result<(), apdu::Error> {
+    pub fn select_ef(&self, ctx: Ctx, id: Vec<u8>) -> Result<(), apdu::Error> {
         self.delegate
-            .handle(apdu::Command::select_file(SELECT_P1_EF, SELECT_P2, id))
+            .handle(ctx, apdu::Command::select_file(SELECT_P1_EF, SELECT_P2, id))
             .into_result()
             .map(|_| ())
     }
 
-    pub fn read(&self, len: Option<u16>) -> Result<Vec<u8>, apdu::Error> {
+    pub fn read(&self, ctx: Ctx, len: Option<u16>) -> Result<Vec<u8>, apdu::Error>
+    where
+        Ctx: Copy,
+    {
         let mut pos: u16 = 0;
         let mut buf: Vec<u8> = Vec::new();
 
@@ -54,13 +74,15 @@ impl Card {
 
             let mut fragment = self
                 .delegate
-                .handle(apdu::Command::read_binary(p1, p2, le))
+                .handle(ctx, apdu::Command::read_binary(p1, p2, le))
                 .into_result()?;
 
-            buf.append(&mut fragment);
-            pos += fragment.len() as u16;
+            let length = fragment.len();
 
-            if (fragment.len() as u8) < le {
+            buf.append(&mut fragment);
+            pos += length as u16;
+
+            if (length as u8) < le {
                 break;
             }
         }
@@ -68,23 +90,26 @@ impl Card {
         Ok(buf)
     }
 
-    pub fn verify(&self, pin: Vec<u8>) -> Result<(), apdu::Error> {
+    pub fn verify(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
         self.delegate
-            .handle(apdu::Command::verify(VERIFY_P2, pin))
+            .handle(ctx, apdu::Command::verify(VERIFY_P2, pin))
             .into_result()
             .map(|_| ())
     }
 
-    pub fn sign(&self, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
+    pub fn sign(&self, ctx: Ctx, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
         self.delegate
-            .handle(apdu::Command::new_with_payload_le(
-                CLA_DEFAULT,
-                SIGN_INS,
-                SIGN_P1,
-                SIGN_P2,
-                0,
-                digest,
-            ))
+            .handle(
+                ctx,
+                apdu::Command::new_with_payload_le(
+                    CLA_DEFAULT,
+                    SIGN_INS,
+                    SIGN_P1,
+                    SIGN_P2,
+                    0,
+                    digest,
+                ),
+            )
             .into_result()
     }
 }
