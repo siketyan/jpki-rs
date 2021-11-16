@@ -3,7 +3,7 @@ extern crate log;
 extern crate android_log;
 
 use jni::objects::{GlobalRef, JByteBuffer, JClass, JObject, JString, JValue};
-use jni::sys::{jlong, jobject, jstring};
+use jni::sys::{jboolean, jlong, jobject, jstring, JNI_TRUE};
 use jni::JNIEnv;
 
 use jpki::ap::jpki::CertType;
@@ -106,11 +106,12 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newJpkiAp(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificate(
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateSign(
     env: JNIEnv,
     _class: JClass,
     jpki_ap: jlong,
     pin: jstring,
+    ca: jboolean,
 ) -> jobject {
     let ctx = JniContext { env };
     let pin = env
@@ -119,8 +120,34 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificate(
         .to_bytes()
         .to_vec();
 
+    let ty = match ca {
+        JNI_TRUE => CertType::SignCA,
+        _ => CertType::Sign,
+    };
+
     let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
-    let mut certificate = ap.read_certificate(ctx, CertType::Sign, pin).unwrap();
+    let mut certificate = ap.read_certificate(ctx, ty, pin).unwrap();
+    let buffer = env.new_direct_byte_buffer(&mut certificate).unwrap();
+
+    buffer.into_inner()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateAuth(
+    env: JNIEnv,
+    _class: JClass,
+    jpki_ap: jlong,
+    ca: jboolean,
+) -> jobject {
+    let ctx = JniContext { env };
+    let pin = vec![];
+    let ty = match ca {
+        JNI_TRUE => CertType::AuthCA,
+        _ => CertType::Auth,
+    };
+
+    let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
+    let mut certificate = ap.read_certificate(ctx, ty, pin).unwrap();
     let buffer = env.new_direct_byte_buffer(&mut certificate).unwrap();
 
     buffer.into_inner()
