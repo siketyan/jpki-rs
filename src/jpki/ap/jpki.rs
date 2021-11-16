@@ -22,6 +22,13 @@ impl CertType {
             Self::SignCA => [0x00, 0x02],
         }
     }
+
+    pub fn is_pin_required(&self) -> bool {
+        match self {
+            Self::Sign | Self::SignCA => true,
+            _ => false,
+        }
+    }
 }
 
 pub struct JpkiAp<T, Ctx>
@@ -49,8 +56,12 @@ where
         ty: CertType,
         pin: Vec<u8>,
     ) -> Result<Vec<u8>, apdu::Error> {
-        self.verify_sign_pin(ctx, pin)
-            .and_then(|_| self.card.select_ef(ctx, ty.into_efid().into()))
+        if ty.is_pin_required() {
+            self.verify_sign_pin(ctx, pin)?;
+        }
+
+        self.card
+            .select_ef(ctx, ty.into_efid().into())
             .and_then(|_| self.read_certificate_size(ctx))
             .and_then(|size| self.card.read(ctx, Some(size)))
     }
