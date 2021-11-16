@@ -67,13 +67,16 @@ impl<'a> JniNfcCard {
 }
 
 #[no_mangle]
+pub extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_init() {
+    android_log::init("JPKI.FFI").unwrap();
+}
+
+#[no_mangle]
 pub extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newNfcCard(
     env: JNIEnv,
     _class: JClass,
     delegate: JObject,
 ) -> jlong {
-    android_log::init("JPKI.FFI1").unwrap();
-
     let global_ref = env.new_global_ref(delegate).unwrap();
     let card = JniNfcCard::new(global_ref);
 
@@ -154,7 +157,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateA
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApAuth<'a>(
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApAuth(
     env: JNIEnv,
     _class: JClass,
     jpki_ap: jlong,
@@ -182,6 +185,15 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApAuth<'a>(
     let buffer = env.new_direct_byte_buffer(&mut signature).unwrap();
 
     buffer.into_inner()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApClose(
+    _env: JNIEnv,
+    _class: JClass,
+    jpki_ap: jlong,
+) {
+    let _ = Box::from_raw(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
 }
 
 fn jstring_to_bytes_vec(env: JNIEnv, str: jstring) -> Vec<u8> {
