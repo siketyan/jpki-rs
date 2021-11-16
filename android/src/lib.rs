@@ -167,21 +167,9 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApAuth(
     let ctx = JniContext { env };
     let pin = jstring_to_bytes_vec(env, pin);
     let digest = env.convert_byte_array(digest).unwrap();
-    let digest_info = yasna::construct_der(|w| {
-        w.write_sequence(|w| {
-            w.next().write_sequence(|w| {
-                w.next()
-                    .write_oid(&yasna::models::ObjectIdentifier::from_slice(&[
-                        1, 3, 14, 3, 2, 26,
-                    ]));
-                w.next().write_null();
-            });
-            w.next().write_bytes(&digest);
-        });
-    });
 
     let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
-    let mut signature = ap.auth(ctx, pin, digest_info).unwrap();
+    let mut signature = ap.auth(ctx, pin, digest).unwrap();
     let buffer = env.new_direct_byte_buffer(&mut signature).unwrap();
 
     buffer.into_inner()
