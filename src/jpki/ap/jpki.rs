@@ -3,6 +3,8 @@ use crate::nfc;
 use crate::nfc::apdu;
 
 const DF_NAME: [u8; 10] = [0xD3, 0x92, 0xF0, 0x00, 0x26, 0x01, 0x00, 0x00, 0x00, 0x01];
+const EF_AUTH: [u8; 2] = [0x00, 0x17];
+const EF_AUTH_PIN: [u8; 2] = [0x00, 0x18];
 const EF_SIGN: [u8; 2] = [0x00, 0x1A];
 const EF_SIGN_PIN: [u8; 2] = [0x00, 0x1B];
 
@@ -25,7 +27,7 @@ impl CertType {
 
     pub fn is_pin_required(&self) -> bool {
         match self {
-            Self::Sign | Self::SignCA => true,
+            Self::Sign => true,
             _ => false,
         }
     }
@@ -66,15 +68,29 @@ where
             .and_then(|size| self.card.read(ctx, Some(size)))
     }
 
+    pub fn auth(&self, ctx: Ctx, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
+        self.verify_auth_pin(ctx, pin)
+            .and_then(|_| self.card.select_ef(ctx, EF_AUTH.into()))
+            .and_then(|_| self.card.sign(ctx, digest))
+    }
+
     pub fn sign(&self, ctx: Ctx, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
         self.verify_sign_pin(ctx, pin)
             .and_then(|_| self.card.select_ef(ctx, EF_SIGN.into()))
             .and_then(|_| self.card.sign(ctx, digest))
     }
 
+    fn verify_auth_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
+        self.verify_pin(ctx, EF_AUTH_PIN, pin)
+    }
+
     fn verify_sign_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
+        self.verify_pin(ctx, EF_SIGN_PIN, pin)
+    }
+
+    fn verify_pin(&self, ctx: Ctx, ef: [u8; 2], pin: Vec<u8>) -> Result<(), apdu::Error> {
         self.card
-            .select_ef(ctx, EF_SIGN_PIN.into())
+            .select_ef(ctx, ef.into())
             .and_then(|_| self.card.verify(ctx, pin.into()))
     }
 

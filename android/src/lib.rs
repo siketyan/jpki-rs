@@ -3,7 +3,7 @@ extern crate log;
 extern crate android_log;
 
 use jni::objects::{GlobalRef, JByteBuffer, JClass, JObject, JString, JValue};
-use jni::sys::{jboolean, jlong, jobject, jstring, JNI_TRUE};
+use jni::sys::{jboolean, jbyteArray, jlong, jobject, jstring, JNI_TRUE};
 use jni::JNIEnv;
 
 use jpki::ap::jpki::CertType;
@@ -151,4 +151,42 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateA
     let buffer = env.new_direct_byte_buffer(&mut certificate).unwrap();
 
     buffer.into_inner()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApAuth<'a>(
+    env: JNIEnv,
+    _class: JClass,
+    jpki_ap: jlong,
+    pin: jstring,
+    digest: jbyteArray,
+) -> jobject {
+    let ctx = JniContext { env };
+    let pin = jstring_to_bytes_vec(env, pin);
+    let digest = env.convert_byte_array(digest).unwrap();
+    let digest_info = yasna::construct_der(|w| {
+        w.write_sequence(|w| {
+            w.next().write_sequence(|w| {
+                w.next()
+                    .write_oid(&yasna::models::ObjectIdentifier::from_slice(&[
+                        1, 3, 14, 3, 2, 26,
+                    ]));
+                w.next().write_null();
+            });
+            w.next().write_bytes(&digest);
+        });
+    });
+
+    let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
+    let mut signature = ap.auth(ctx, pin, digest_info).unwrap();
+    let buffer = env.new_direct_byte_buffer(&mut signature).unwrap();
+
+    buffer.into_inner()
+}
+
+fn jstring_to_bytes_vec(env: JNIEnv, str: jstring) -> Vec<u8> {
+    env.get_string(JString::from(str))
+        .unwrap()
+        .to_bytes()
+        .to_vec()
 }

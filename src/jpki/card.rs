@@ -2,7 +2,6 @@ use std::marker::PhantomData;
 
 use crate::nfc;
 use crate::nfc::apdu;
-use crate::nfc::apdu::CLA_DEFAULT;
 
 const SELECT_P1_DF: u8 = 0x04;
 const SELECT_P1_EF: u8 = 0x02;
@@ -10,6 +9,7 @@ const SELECT_P2: u8 = 0x0C;
 
 const VERIFY_P2: u8 = 0x80;
 
+const SIGN_CLA: u8 = 0x80;
 const SIGN_INS: u8 = 0x2A;
 const SIGN_P1: u8 = 0x00;
 const SIGN_P2: u8 = 0x80;
@@ -101,14 +101,7 @@ where
         self.delegate
             .handle(
                 ctx,
-                apdu::Command::new_with_payload_le(
-                    CLA_DEFAULT,
-                    SIGN_INS,
-                    SIGN_P1,
-                    SIGN_P2,
-                    0,
-                    digest,
-                ),
+                apdu::Command::new_with_payload_le(SIGN_CLA, SIGN_INS, SIGN_P1, SIGN_P2, 0, digest),
             )
             .into_result()
     }
