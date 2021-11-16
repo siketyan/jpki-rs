@@ -8,7 +8,7 @@ use jni::JNIEnv;
 
 use jpki::ap::jpki::CertType;
 use jpki::ap::JpkiAp;
-use jpki::{nfc, Card};
+use jpki::{nfc, Card, ClientForAuth};
 
 struct JniNfcCard {
     delegate: GlobalRef,
@@ -201,4 +201,63 @@ fn jstring_to_bytes_vec(env: JNIEnv, str: jstring) -> Vec<u8> {
         .unwrap()
         .to_bytes()
         .to_vec()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newClientForAuth(
+    env: JNIEnv,
+    _class: JClass,
+    delegate: jlong,
+) -> jlong {
+    let ctx = JniContext { env };
+    let card = Box::from_raw(delegate as *mut JniNfcCard);
+    let client = ClientForAuth::create(ctx, card).unwrap();
+
+    Box::into_raw(Box::new(client)) as jlong
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_clientForAuthSign(
+    env: JNIEnv,
+    _class: JClass,
+    client: jlong,
+    pin: jstring,
+    message: jbyteArray,
+) -> jobject {
+    let ctx = JniContext { env };
+    let pin = jstring_to_bytes_vec(env, pin);
+    let message = env.convert_byte_array(message).unwrap();
+
+    let client = &mut *(client as *mut ClientForAuth<JniNfcCard, JniContext>);
+    let mut signature = client.sign(ctx, pin, message).unwrap();
+    let buffer = env.new_direct_byte_buffer(&mut signature).unwrap();
+
+    buffer.into_inner()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_clientForAuthVerify(
+    env: JNIEnv,
+    _class: JClass,
+    client: jlong,
+    message: jbyteArray,
+    signature: jbyteArray,
+) -> jboolean {
+    let ctx = JniContext { env };
+    let message = env.convert_byte_array(message).unwrap();
+    let signature = env.convert_byte_array(signature).unwrap();
+
+    let client = &mut *(client as *mut ClientForAuth<JniNfcCard, JniContext>);
+    let result = client.verify(ctx, message, signature).unwrap();
+
+    result.into()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_clientForAuthClose(
+    _env: JNIEnv,
+    _class: JClass,
+    client: jlong,
+) {
+    let _ = Box::from_raw(client as *mut ClientForAuth<JniNfcCard, JniContext>);
 }
