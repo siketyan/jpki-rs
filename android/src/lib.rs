@@ -270,11 +270,13 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newClientForAuth(
     _class: JClass,
     delegate: jlong,
 ) -> jlong {
-    let ctx = JniContext { env };
-    let card = Box::from_raw(delegate as *mut JniNfcCard);
-    let client = ClientForAuth::create(ctx, card).unwrap();
+    wrap!(jlong, {
+        let ctx = JniContext { env };
+        let card = Box::from_raw(delegate as *mut JniNfcCard);
+        let client = ClientForAuth::create(ctx, card).map_err(Error::Apdu)?;
 
-    Box::into_raw(Box::new(client)) as jlong
+        Ok(Box::into_raw(Box::new(client)) as jlong)
+    })
 }
 
 #[no_mangle]
