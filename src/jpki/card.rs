@@ -14,6 +14,7 @@ const SIGN_INS: u8 = 0x2A;
 const SIGN_P1: u8 = 0x00;
 const SIGN_P2: u8 = 0x80;
 
+/// An adapter to communicate with the card through the delegate
 pub struct Card<T, Ctx>
 where
     T: nfc::Card<Ctx>,
@@ -28,6 +29,7 @@ where
     T: nfc::Card<Ctx>,
     Ctx: Copy,
 {
+    /// Initiates an adapter with the delegate.
     pub fn new(delegate: Box<T>) -> Self {
         Self {
             delegate,
@@ -35,6 +37,7 @@ where
         }
     }
 
+    /// Selects a DF with their name.
     pub fn select_df(&self, ctx: Ctx, name: Vec<u8>) -> Result<(), apdu::Error> {
         self.delegate
             .handle(
@@ -45,6 +48,7 @@ where
             .map(|_| ())
     }
 
+    /// Selects a EF with their name.
     pub fn select_ef(&self, ctx: Ctx, id: Vec<u8>) -> Result<(), apdu::Error> {
         self.delegate
             .handle(ctx, apdu::Command::select_file(SELECT_P1_EF, SELECT_P2, id))
@@ -52,6 +56,7 @@ where
             .map(|_| ())
     }
 
+    /// Reads binary from the selected file for `len` octets max.
     pub fn read(&self, ctx: Ctx, len: Option<u16>) -> Result<Vec<u8>, apdu::Error>
     where
         Ctx: Copy,
@@ -90,6 +95,7 @@ where
         Ok(buf)
     }
 
+    /// Verifies the PIN.
     pub fn verify(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
         self.delegate
             .handle(ctx, apdu::Command::verify(VERIFY_P2, pin))
@@ -97,6 +103,7 @@ where
             .map(|_| ())
     }
 
+    /// Computes a signature using the selected key.
     pub fn sign(&self, ctx: Ctx, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
         self.delegate
             .handle(

@@ -1,3 +1,5 @@
+//! JPKI AP
+
 use crate::jpki::card::Card;
 use crate::nfc;
 use crate::nfc::apdu;
@@ -8,14 +10,24 @@ const EF_AUTH_PIN: [u8; 2] = [0x00, 0x18];
 const EF_SIGN: [u8; 2] = [0x00, 0x1A];
 const EF_SIGN_PIN: [u8; 2] = [0x00, 0x1B];
 
+/// Type of the certificate to fetch
 pub enum CertType {
+    /// Certificate for authentication
     Auth,
+
+    /// Certificate of CA (Certificate Authority) that issued the authentication certificate
     AuthCA,
+
+    /// Certificate for signing documents
     Sign,
+
+    /// Certificate of CA (Certificate Authority) that issued the signing certificate
     SignCA,
 }
 
 impl CertType {
+    /// Converts the variant into the identifier to select a EF
+    /// that corresponds with the selected certificate.
     pub fn into_efid(self) -> [u8; 2] {
         match self {
             Self::Auth => [0x00, 0x0A],
@@ -25,6 +37,7 @@ impl CertType {
         }
     }
 
+    /// Determines whether it is needed for fetching the certificate to unlock it with a PIN.
     pub fn is_pin_required(&self) -> bool {
         match self {
             Self::Sign => true,
@@ -33,6 +46,7 @@ impl CertType {
     }
 }
 
+/// An AP to sign or verify messages using a key-pair issued by JPKI
 pub struct JpkiAp<T, Ctx>
 where
     T: nfc::Card<Ctx>,
@@ -46,12 +60,14 @@ where
     T: nfc::Card<Ctx>,
     Ctx: Copy,
 {
+    /// Opens the AP in the card by selecting the DF.
     pub fn open(ctx: Ctx, card: Box<Card<T, Ctx>>) -> Result<Self, apdu::Error> {
         let ap = Self { card };
 
         ap.card.select_df(ctx, DF_NAME.into()).map(|_| ap)
     }
 
+    /// Reads a certificate of the type, unlocking with the PIN if required.
     pub fn read_certificate(
         &self,
         ctx: Ctx,
@@ -68,12 +84,14 @@ where
             .and_then(|size| self.card.read(ctx, Some(size)))
     }
 
+    /// Computes a signature using the key-pair for authentication.
     pub fn auth(&self, ctx: Ctx, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
         self.verify_auth_pin(ctx, pin)
             .and_then(|_| self.card.select_ef(ctx, EF_AUTH.into()))
             .and_then(|_| self.card.sign(ctx, digest))
     }
 
+    /// Computes a signature using the key-pair for signing.
     pub fn sign(&self, ctx: Ctx, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
         self.verify_sign_pin(ctx, pin)
             .and_then(|_| self.card.select_ef(ctx, EF_SIGN.into()))

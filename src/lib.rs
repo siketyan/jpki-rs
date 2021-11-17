@@ -1,3 +1,5 @@
+//! A crate to communicate with JPKI card through an APDU delegate.
+
 mod jpki;
 
 pub mod nfc;
@@ -9,6 +11,7 @@ use crate::ap::JpkiAp;
 use crate::jpki::ap::jpki::CertType;
 use crate::nfc::apdu;
 
+/// High-level API to operate with authentication certificate and the key-pair
 pub struct ClientForAuth<T, Ctx>
 where
     T: nfc::Card<Ctx>,
@@ -22,12 +25,14 @@ where
     T: nfc::Card<Ctx>,
     Ctx: Copy,
 {
+    /// Initiates a client with the delegate.
     pub fn create(ctx: Ctx, delegate: Box<T>) -> Result<Self, apdu::Error> {
         Ok(Self {
             jpki_ap: Box::new(JpkiAp::open(ctx, Box::new(Card::new(delegate)))?),
         })
     }
 
+    /// Compute a signature for the message, unlocking the key with the PIN.
     pub fn sign(&self, ctx: Ctx, pin: Vec<u8>, message: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
         let digest = ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, &message);
         let oid = yasna::models::ObjectIdentifier::from_slice(&[1, 3, 14, 3, 2, 26]);
@@ -44,6 +49,7 @@ where
         self.jpki_ap.auth(ctx, pin, digest_info)
     }
 
+    /// Verifies the signature for the message.
     pub fn verify(
         &self,
         ctx: Ctx,
