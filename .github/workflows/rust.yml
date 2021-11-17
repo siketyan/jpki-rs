@@ -82,6 +82,7 @@ jobs:
           export TOOLCHAIN="${PWD}/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin"
           echo "$TOOLCHAIN" >> $GITHUB_PATH
           ln -s "$TOOLCHAIN/llvm-ar" "$TOOLCHAIN/${{ matrix.target }}-ar"
+          ln -s "$TOOLCHAIN/llvm-ar" "$TOOLCHAIN/arm-linux-androideabi-ar"
 
       - name: Build
         uses: actions-rs/cargo@v1
