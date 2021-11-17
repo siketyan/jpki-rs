@@ -3,7 +3,6 @@ name = "jpki"
 description = "A crate to communicate with JPKI card through an APDU delegate."
 version = "0.1.0"
 license = "MIT"
-readme = "https://github.com/siketyan/jpki-rs#readme"
 homepage = "https://github.com/siketyan/jpki-rs"
 repository = "https://github.com/siketyan/jpki-rs.git"
 authors = ["Naoki Ikeguchi <me@s6n.jp>"]
