@@ -10,6 +10,19 @@ use jpki::ap::jpki::CertType;
 use jpki::ap::JpkiAp;
 use jpki::{nfc, Card, ClientForAuth};
 
+const NULL: jobject = 0 as jobject;
+
+static mut LAST_ERROR: Option<String> = None;
+
+#[derive(thiserror::Error, Debug)]
+enum Error {
+    #[error("APDU Error: {0}")]
+    Apdu(#[from] nfc::apdu::Error),
+
+    #[error("JNI Error: {0}")]
+    Jni(#[from] jni::errors::Error),
+}
+
 struct JniNfcCard {
     delegate: GlobalRef,
 }
@@ -66,21 +79,79 @@ impl<'a> JniNfcCard {
     }
 }
 
+unsafe fn unwrap<T, E>(result: Result<T, E>) -> T
+where
+    T: Default,
+    E: std::error::Error,
+{
+    match result {
+        Ok(value) => value,
+        Err(err) => {
+            LAST_ERROR = Some(err.to_string());
+            T::default()
+        }
+    }
+}
+
+unsafe fn unwrap_or_default<T, E>(result: Result<T, E>, default: T) -> T
+where
+    E: std::error::Error,
+{
+    match result {
+        Ok(value) => value,
+        Err(err) => {
+            LAST_ERROR = Some(err.to_string());
+            default
+        }
+    }
+}
+
+macro_rules! wrap {
+    (jobject, $inner: expr) => {
+        unwrap_or_default((|| -> Result<jobject, Error> { $inner })(), NULL)
+    };
+
+    (jobject, $e: ty, $inner: expr) => {
+        unwrap_or_default((|| -> Result<jobject, $e> { $inner })(), NULL)
+    };
+
+    ($t: ty, $inner: expr) => {
+        unwrap((|| -> Result<$t, Error> { $inner })())
+    };
+
+    ($t: ty, $e: ty, $inner: expr) => {
+        unwrap((|| -> Result<$t, $e> { $inner })())
+    };
+}
+
 #[no_mangle]
 pub extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_init() {
     android_log::init("JPKI.FFI").unwrap();
 }
 
 #[no_mangle]
-pub extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newNfcCard(
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_lastError(
+    env: JNIEnv,
+    _class: JClass,
+) -> jstring {
+    match LAST_ERROR.clone() {
+        Some(message) => env.new_string(message).unwrap().into_inner(),
+        None => 0 as jstring,
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newNfcCard(
     env: JNIEnv,
     _class: JClass,
     delegate: JObject,
 ) -> jlong {
-    let global_ref = env.new_global_ref(delegate).unwrap();
-    let card = JniNfcCard::new(global_ref);
+    wrap!(jlong, {
+        let global_ref = env.new_global_ref(delegate).map_err(Error::Jni)?;
+        let card = JniNfcCard::new(global_ref);
 
-    Box::into_raw(Box::new(card)) as jlong
+        Ok(Box::into_raw(Box::new(card)) as jlong)
+    })
 }
 
 #[no_mangle]
@@ -101,11 +172,13 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newJpkiAp(
     _class: JClass,
     delegate: jlong,
 ) -> jlong {
-    let ctx = JniContext { env };
-    let card = Box::from_raw(delegate as *mut Card<JniNfcCard, JniContext>);
-    let ap = JpkiAp::open(ctx, card).unwrap();
+    wrap!(jlong, {
+        let ctx = JniContext { env };
+        let card = Box::from_raw(delegate as *mut Card<JniNfcCard, JniContext>);
+        let ap = JpkiAp::open(ctx, card)?;
 
-    Box::into_raw(Box::new(ap)) as jlong
+        Ok(Box::into_raw(Box::new(ap)) as jlong)
+    })
 }
 
 #[no_mangle]
@@ -116,23 +189,22 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateS
     pin: jstring,
     ca: jboolean,
 ) -> jobject {
-    let ctx = JniContext { env };
-    let pin = env
-        .get_string(JString::from(pin))
-        .unwrap()
-        .to_bytes()
-        .to_vec();
+    wrap!(jobject, {
+        let ctx = JniContext { env };
+        let pin = jstring_to_bytes_vec(env, pin)?;
+        let ty = match ca {
+            JNI_TRUE => CertType::SignCA,
+            _ => CertType::Sign,
+        };
 
-    let ty = match ca {
-        JNI_TRUE => CertType::SignCA,
-        _ => CertType::Sign,
-    };
+        let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
+        let mut certificate = ap.read_certificate(ctx, ty, pin).map_err(Error::Apdu)?;
+        let buffer = env
+            .new_direct_byte_buffer(&mut certificate)
+            .map_err(Error::Jni)?;
 
-    let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
-    let mut certificate = ap.read_certificate(ctx, ty, pin).unwrap();
-    let buffer = env.new_direct_byte_buffer(&mut certificate).unwrap();
-
-    buffer.into_inner()
+        Ok(buffer.into_inner())
+    })
 }
 
 #[no_mangle]
@@ -142,18 +214,22 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateA
     jpki_ap: jlong,
     ca: jboolean,
 ) -> jobject {
-    let ctx = JniContext { env };
-    let pin = vec![];
-    let ty = match ca {
-        JNI_TRUE => CertType::AuthCA,
-        _ => CertType::Auth,
-    };
+    wrap!(jobject, {
+        let ctx = JniContext { env };
+        let pin = vec![];
+        let ty = match ca {
+            JNI_TRUE => CertType::AuthCA,
+            _ => CertType::Auth,
+        };
 
-    let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
-    let mut certificate = ap.read_certificate(ctx, ty, pin).unwrap();
-    let buffer = env.new_direct_byte_buffer(&mut certificate).unwrap();
+        let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
+        let mut certificate = ap.read_certificate(ctx, ty, pin).map_err(Error::Apdu)?;
+        let buffer = env
+            .new_direct_byte_buffer(&mut certificate)
+            .map_err(Error::Jni)?;
 
-    buffer.into_inner()
+        Ok(buffer.into_inner())
+    })
 }
 
 #[no_mangle]
@@ -164,15 +240,19 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApAuth(
     pin: jstring,
     digest: jbyteArray,
 ) -> jobject {
-    let ctx = JniContext { env };
-    let pin = jstring_to_bytes_vec(env, pin);
-    let digest = env.convert_byte_array(digest).unwrap();
+    wrap!(jobject, {
+        let ctx = JniContext { env };
+        let pin = jstring_to_bytes_vec(env, pin)?;
+        let digest = env.convert_byte_array(digest).map_err(Error::Jni)?;
 
-    let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
-    let mut signature = ap.auth(ctx, pin, digest).unwrap();
-    let buffer = env.new_direct_byte_buffer(&mut signature).unwrap();
+        let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
+        let mut signature = ap.auth(ctx, pin, digest).map_err(Error::Apdu)?;
+        let buffer = env
+            .new_direct_byte_buffer(&mut signature)
+            .map_err(Error::Jni)?;
 
-    buffer.into_inner()
+        Ok(buffer.into_inner())
+    })
 }
 
 #[no_mangle]
@@ -182,13 +262,6 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApClose(
     jpki_ap: jlong,
 ) {
     let _ = Box::from_raw(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
-}
-
-fn jstring_to_bytes_vec(env: JNIEnv, str: jstring) -> Vec<u8> {
-    env.get_string(JString::from(str))
-        .unwrap()
-        .to_bytes()
-        .to_vec()
 }
 
 #[no_mangle]
@@ -212,15 +285,19 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_clientForAuthSign(
     pin: jstring,
     message: jbyteArray,
 ) -> jobject {
-    let ctx = JniContext { env };
-    let pin = jstring_to_bytes_vec(env, pin);
-    let message = env.convert_byte_array(message).unwrap();
+    wrap!(jobject, {
+        let ctx = JniContext { env };
+        let pin = jstring_to_bytes_vec(env, pin)?;
+        let message = env.convert_byte_array(message).map_err(Error::Jni)?;
 
-    let client = &mut *(client as *mut ClientForAuth<JniNfcCard, JniContext>);
-    let mut signature = client.sign(ctx, pin, message).unwrap();
-    let buffer = env.new_direct_byte_buffer(&mut signature).unwrap();
+        let client = &mut *(client as *mut ClientForAuth<JniNfcCard, JniContext>);
+        let mut signature = client.sign(ctx, pin, message).map_err(Error::Apdu)?;
+        let buffer = env
+            .new_direct_byte_buffer(&mut signature)
+            .map_err(Error::Jni)?;
 
-    buffer.into_inner()
+        Ok(buffer.into_inner())
+    })
 }
 
 #[no_mangle]
@@ -231,14 +308,18 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_clientForAuthVerify(
     message: jbyteArray,
     signature: jbyteArray,
 ) -> jboolean {
-    let ctx = JniContext { env };
-    let message = env.convert_byte_array(message).unwrap();
-    let signature = env.convert_byte_array(signature).unwrap();
+    wrap!(jboolean, {
+        let ctx = JniContext { env };
+        let message = env.convert_byte_array(message).map_err(Error::Jni)?;
+        let signature = env.convert_byte_array(signature).map_err(Error::Jni)?;
 
-    let client = &mut *(client as *mut ClientForAuth<JniNfcCard, JniContext>);
-    let result = client.verify(ctx, message, signature).unwrap();
+        let client = &mut *(client as *mut ClientForAuth<JniNfcCard, JniContext>);
+        let result = client
+            .verify(ctx, message, signature)
+            .map_err(Error::Apdu)?;
 
-    result.into()
+        Ok(result.into())
+    })
 }
 
 #[no_mangle]
@@ -248,4 +329,12 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_clientForAuthClose(
     client: jlong,
 ) {
     let _ = Box::from_raw(client as *mut ClientForAuth<JniNfcCard, JniContext>);
+}
+
+fn jstring_to_bytes_vec(env: JNIEnv, str: jstring) -> Result<Vec<u8>, Error> {
+    Ok(env
+        .get_string(JString::from(str))
+        .map_err(Error::Jni)?
+        .to_bytes()
+        .to_vec())
 }
