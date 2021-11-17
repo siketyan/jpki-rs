@@ -2,8 +2,8 @@ mod jpki;
 
 pub mod nfc;
 
-pub use jpki::ap;
-pub use jpki::Card;
+pub use self::jpki::ap;
+pub use self::jpki::Card;
 
 use crate::ap::JpkiAp;
 use crate::jpki::ap::jpki::CertType;

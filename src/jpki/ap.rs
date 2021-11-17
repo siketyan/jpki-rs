@@ -2,4 +2,4 @@ mod card;
 
 pub mod jpki;
 
-pub use jpki::JpkiAp;
+pub use self::jpki::JpkiAp;
