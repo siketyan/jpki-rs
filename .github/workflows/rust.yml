@@ -1,7 +1,12 @@
 name: Rust
 
 on:
-  - push
+  push:
+    branches:
+      - '*'
+  release:
+    types:
+      - published
 
 env:
   CARGO_TERM_COLOR: always
@@ -119,3 +124,56 @@ jobs:
         with:
           name: workspace
           path: '.'
+
+  deploy:
+    runs-on: ubuntu-20.04
+    if: ${{ github.event_name == 'release' }}
+    needs:
+      - build
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: workspace
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install cargo-edit-version
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --verbose cargo-edit-version
+
+      - name: Set version by the release tag
+        run:
+          cargo-edit-version "${{ github.event.release.tag_name }}"
+          cd ./cli && cargo-edit-version "${{ github.event.release.tag_name }}"
+
+      - name: Log into crates.io
+        uses: actions-rs/cargo@v1
+        with:
+          command: login
+          args: ${{ secrets.CRATES_IO_TOKEN }}
+
+      - name: Publish to crates.io (Core)
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --verbose --allow-dirty -p jpki
+
+      - name: Publish to crates.io (CLI)
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --verbose --allow-dirty -p jpki-cli

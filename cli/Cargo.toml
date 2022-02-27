@@ -15,5 +15,9 @@ edition = "2021"
 clap = { version = "3.1", features = ["derive"] }
 dialoguer = "0.10"
 jpki = { path = ".." }
-nfc1-sys = { git = "https://github.com/siketyan/rs-nfc1-sys", default-features = false }
 thiserror = "1.0"
+
+[dependencies.nfc1-sys]
+git = "https://github.com/siketyan/rs-nfc1-sys"
+rev = "954de75fa3851b5f4c4a9be8cb5ec1020c2cb646"
+features = ["conffiles", "envvars", "logging", "driver_pcsc"]
