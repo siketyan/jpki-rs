@@ -5,4 +5,4 @@ rustflags = ["-C", "link-args=-L./android-ndk-r23b/toolchains/llvm/prebuilt/linu
 rustflags = ["-C", "link-args=-L./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/31"]
 
 [target.armv7-linux-androideabi]
-rustflags = ["-C", "link-args=-L./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-android/31"]
+rustflags = ["-C", "link-args=-L./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-androideabi/31"]
