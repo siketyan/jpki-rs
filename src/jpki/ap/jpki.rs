@@ -11,6 +11,7 @@ const EF_SIGN: [u8; 2] = [0x00, 0x1A];
 const EF_SIGN_PIN: [u8; 2] = [0x00, 0x1B];
 
 /// Type of the certificate to fetch
+#[derive(Copy, Clone)]
 pub enum CertType {
     /// Certificate for authentication
     Auth,

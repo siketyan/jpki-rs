@@ -1,12 +1,13 @@
 [package]
-name = "cli"
+name = "jpki-cli"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = { version = "3.1", features = ["derive"] }
+dialoguer = "0.10"
 jpki = { path = ".." }
-nfc1 = { git = "https://github.com/siketyan/rs-nfc1", rev = "78882592c23d82a334ad6594fea616e0cddb3c0f" }
 nfc1-sys = { git = "https://github.com/siketyan/rs-nfc1-sys", default-features = false }
 thiserror = "1.0"
