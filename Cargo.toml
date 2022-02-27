@@ -17,5 +17,6 @@ x509-certificate = "0.4"
 
 [workspace]
 members = [
-    "android"
+    "android",
+    "cli",
 ]
