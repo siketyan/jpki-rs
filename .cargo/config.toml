@@ -1,5 +1,8 @@
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-args=-L./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/x86_64-linux-android/31"]
+
 [target.aarch64-linux-android]
-linker = "./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang"
+rustflags = ["-C", "link-args=-L./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/31"]
 
 [target.armv7-linux-androideabi]
-linker = "./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang"
+rustflags = ["-C", "link-args=-L./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/arm-linux-android/31"]
