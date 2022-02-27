@@ -93,7 +93,7 @@ jobs:
 
       - name: Install libnfc
         if: ${{ matrix.cli }}
-        run: sudo apt install libnfc5 libnfc-dev udev libudev-dev
+        run: sudo apt install libnfc5 libnfc-dev udev libudev-dev pcscd libpcsclite-dev
 
       - name: Install Android NDK
         if: ${{ matrix.android }}
