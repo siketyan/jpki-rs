@@ -1,6 +1,12 @@
 [package]
 name = "jpki-cli"
+description = "A CLI to communicate with JPKI card."
 version = "0.1.0"
+license = "MIT"
+homepage = "https://github.com/siketyan/jpki-rs"
+repository = "https://github.com/siketyan/jpki-rs.git"
+authors = ["Naoki Ikeguchi <me@s6n.jp>"]
+readme = "../README.md"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
