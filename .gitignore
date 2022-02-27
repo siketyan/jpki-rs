@@ -1,2 +1,3 @@
 /target
+/android-ndk-r23b/
 Cargo.lock

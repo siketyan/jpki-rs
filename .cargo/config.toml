@@ -1,0 +1,5 @@
+[target.aarch64-linux-android]
+linker = "./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android31-clang"
+
+[target.armv7-linux-androideabi]
+linker = "./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi31-clang"
