@@ -97,6 +97,7 @@ jobs:
         with:
           command: build
           args: --verbose --release --target=${{ matrix.target }} -p jpki-android
+          use-cross: true
 
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
