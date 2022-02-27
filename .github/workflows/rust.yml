@@ -84,8 +84,22 @@ jobs:
           ln -s "$TOOLCHAIN/llvm-ar" "$TOOLCHAIN/${{ matrix.target }}-ar"
           ln -s "$TOOLCHAIN/llvm-ar" "$TOOLCHAIN/arm-linux-androideabi-ar"
 
-      - name: Build
+      - name: Build (CLI)
+        if: ${{ startsWith(matrix.target, 'x86_64-') }}
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --verbose --release --target=${{ matrix.target }}
+          args: --verbose --release --target=${{ matrix.target }} -p jpki-cli
+
+      - name: Build (Android)
+        if: ${{ !startsWith(matrix.target, 'x86_64-') }}
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose --release --target=${{ matrix.target }} -p jpki-android
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
+        with:
+          name: workspace
+          path: '.'
