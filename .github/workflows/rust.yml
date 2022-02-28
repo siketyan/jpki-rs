@@ -151,7 +151,6 @@ jobs:
           override: true
 
       - name: Install libnfc
-        if: ${{ matrix.cli }}
         run: sudo apt install libnfc5 libnfc-dev udev libudev-dev pcscd libpcsclite-dev
 
       - name: Install cargo-edit-version
