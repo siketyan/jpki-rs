@@ -14,7 +14,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "3.1", features = ["derive"] }
 dialoguer = "0.10"
-jpki = { path = ".." }
+jpki = { version = "0.1", path = ".." }
 thiserror = "1.0"
 
 [dependencies.nfc1-sys]
