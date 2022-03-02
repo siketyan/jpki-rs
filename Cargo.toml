@@ -1,7 +1,7 @@
 [package]
 name = "jpki"
 description = "A crate to communicate with JPKI card through an APDU delegate."
-version = "0.1.1"
+version = "0.1.5"
 license = "MIT"
 homepage = "https://github.com/siketyan/jpki-rs"
 repository = "https://github.com/siketyan/jpki-rs.git"
