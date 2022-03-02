@@ -1,7 +1,7 @@
 [package]
 name = "jpki-cli"
 description = "A CLI to communicate with JPKI card."
-version = "0.1.0"
+version = "0.1.5"
 license = "MIT"
 homepage = "https://github.com/siketyan/jpki-rs"
 repository = "https://github.com/siketyan/jpki-rs.git"
@@ -14,6 +14,6 @@ edition = "2021"
 [dependencies]
 clap = { version = "3.1", features = ["derive"] }
 dialoguer = "0.10"
-jpki = { version = "0.1", path = ".." }
+jpki = { version = "0.1.5", path = ".." }
 nfc1-sys = { version = "0.2", features = ["conffiles", "envvars", "logging", "driver_pcsc"] }
 thiserror = "1.0"
