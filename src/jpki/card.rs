@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use crate::der::entire_size_from_partial;
 use crate::nfc;
 use crate::nfc::apdu;
 
@@ -111,5 +112,18 @@ where
                 apdu::Command::new_with_payload_le(SIGN_CLA, SIGN_INS, SIGN_P1, SIGN_P2, 0, digest),
             )
             .into_result()
+    }
+
+    /// Selects a EF then verifies the pin using the EF.
+    pub fn verify_pin(&self, ctx: Ctx, ef: [u8; 2], pin: Vec<u8>) -> Result<(), apdu::Error> {
+        self.select_ef(ctx, ef.into())
+            .and_then(|_| self.verify(ctx, pin))
+    }
+
+    /// Extracts the size of current file by reading DER-encoded ASN.1 header.
+    pub fn read_der_size(&self, ctx: Ctx) -> Result<u16, apdu::Error> {
+        let header = self.read(ctx, Some(7))?;
+
+        Ok(entire_size_from_partial(&header) as u16)
     }
 }

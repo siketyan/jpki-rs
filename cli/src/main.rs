@@ -1,13 +1,17 @@
+extern crate core;
+
 mod nfc;
 
 use std::fs::File;
 use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::PathBuf;
 use std::process::exit;
+use std::rc::Rc;
 
 use clap::{Parser, Subcommand};
 use dialoguer::Password;
 use jpki::ap::jpki::CertType;
+use jpki::ap::surface::Pin;
 use jpki::nfc::apdu::{Command, Handler, Response};
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
@@ -44,6 +48,50 @@ impl<'a> Handler<Ctx> for NfcCard<'a> {
 
 impl<'a> jpki::nfc::Card<Ctx> for NfcCard<'a> {}
 
+#[derive(Debug, Default)]
+struct Surface {
+    _header: Vec<u8>,
+    date_of_birth: Vec<u8>,
+    sex: Vec<u8>,
+    public_key: Vec<u8>,
+    name: Vec<u8>,
+    address: Vec<u8>,
+    photo: Vec<u8>,
+    signature: Vec<u8>,
+    expiry_date: Vec<u8>,
+    code: Vec<u8>,
+}
+
+impl<'a> From<&'a [u8]> for Surface {
+    fn from(buf: &'a [u8]) -> Self {
+        jpki::der::Reader::new(buf).in_sequence(|reader| Self {
+            _header: Vec::from(reader.read_auto()),
+            date_of_birth: Vec::from(reader.read_auto()),
+            sex: Vec::from(reader.read_auto()),
+            public_key: Vec::from(reader.read_auto()),
+            name: Vec::from(reader.read_auto()),
+            address: Vec::from(reader.read_auto()),
+            photo: Vec::from(reader.read_auto()),
+            signature: Vec::from(reader.read_auto()),
+            expiry_date: Vec::from(reader.read_auto()),
+            code: Vec::from(reader.read_auto()),
+        })
+    }
+}
+
+#[derive(Clone, clap::ArgEnum)]
+enum SurfaceContentType {
+    DateOfBirth,
+    Sex,
+    PublicKey,
+    Name,
+    Address,
+    Photo,
+    Signature,
+    ExpiryDate,
+    Code,
+}
+
 #[derive(Subcommand)]
 enum SubCommand {
     /// Reads a certificate in the JPKI card.
@@ -60,6 +108,17 @@ enum SubCommand {
 
         /// Path to signature to verify for.
         signature_path: PathBuf,
+    },
+    /// Reads the surface information from the card.
+    /// PIN type B (DoB + Expiry + PIN) is required by default.
+    Surface {
+        #[clap(arg_enum)]
+        ty: SurfaceContentType,
+
+        /// Reads all of available information.
+        /// PIN type A (My Number in 12 digits) is required.
+        #[clap(long, action)]
+        all: bool,
     },
 }
 
@@ -104,8 +163,9 @@ fn run() -> Result<()> {
     let target = initiator.select_dep_target(ctx).map_err(Error::Nfc)?;
 
     let nfc_card = NfcCard { target };
-    let card = jpki::Card::new(Box::new(nfc_card));
-    let jpki_ap = jpki::ap::JpkiAp::open((), Box::new(card)).map_err(Error::Apdu)?;
+    let card = Rc::new(jpki::Card::new(Box::new(nfc_card)));
+    let open_jpki_ap = || jpki::ap::JpkiAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
+    let open_surface_ap = || jpki::ap::SurfaceAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
 
     let ty = match (cli.auth, cli.ca) {
         (true, true) => CertType::AuthCA,
@@ -116,6 +176,7 @@ fn run() -> Result<()> {
 
     match &cli.command {
         SubCommand::ReadCertificate => {
+            let jpki_ap = open_jpki_ap()?;
             let pin = if ty.is_pin_required() {
                 prompt_password()?
             } else {
@@ -127,6 +188,7 @@ fn run() -> Result<()> {
             stdout().write_all(&certificate).map_err(Error::IO)?;
         }
         SubCommand::Sign { signature_path } => {
+            let jpki_ap = open_jpki_ap()?;
             let digest = jpki::digest::calculate(read_all(stdin())?);
             let signature = match cli.auth {
                 true => jpki_ap.auth((), prompt_password()?, digest),
@@ -148,6 +210,32 @@ fn run() -> Result<()> {
                 error!("NG");
                 exit(1);
             }
+        }
+        SubCommand::Surface { ty, all } => {
+            use SurfaceContentType::*;
+
+            let surface_ap = open_surface_ap()?;
+            let pin = match all {
+                true => Pin::A,
+                _ => Pin::B,
+            }(prompt_password()?);
+
+            let info = surface_ap.read_surface((), pin).map_err(Error::Apdu)?;
+            let surface = Surface::from(info.as_slice());
+
+            stdout()
+                .write_all(match ty {
+                    DateOfBirth => &surface.date_of_birth,
+                    Sex => &surface.sex,
+                    PublicKey => &surface.public_key,
+                    Name => &surface.name,
+                    Address => &surface.address,
+                    Photo => &surface.photo,
+                    Signature => &surface.signature,
+                    ExpiryDate => &surface.expiry_date,
+                    Code => &surface.code,
+                })
+                .map_err(Error::IO)?;
         }
     }
 

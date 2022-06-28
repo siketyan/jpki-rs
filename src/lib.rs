@@ -5,7 +5,10 @@ mod jpki;
 #[cfg(feature = "digest")]
 pub mod digest;
 
+pub mod der;
 pub mod nfc;
+
+use std::rc::Rc;
 
 pub use self::jpki::ap;
 pub use self::jpki::Card;
@@ -31,7 +34,7 @@ where
     /// Initiates a client with the delegate.
     pub fn create(ctx: Ctx, delegate: Box<T>) -> Result<Self, apdu::Error> {
         Ok(Self {
-            jpki_ap: Box::new(JpkiAp::open(ctx, Box::new(Card::new(delegate)))?),
+            jpki_ap: Box::new(JpkiAp::open(ctx, Rc::new(Card::new(delegate)))?),
         })
     }
 
