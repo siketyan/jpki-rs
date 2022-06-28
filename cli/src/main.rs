@@ -8,6 +8,7 @@ use std::process::exit;
 use clap::{ArgEnum, Parser, Subcommand};
 use dialoguer::Password;
 use jpki::nfc::apdu::{Command, Handler, Response};
+use jpki::ap::jpki as jpki_ap;
 
 use crate::nfc::{Context, Initiator, Target};
 
@@ -49,13 +50,15 @@ enum CertType {
     AuthCA,
 }
 
-impl Into<jpki::ap::jpki::CertType> for CertType {
-    fn into(self) -> jpki::ap::jpki::CertType {
+impl Into<jpki_ap::CertType> for CertType {
+    fn into(self) -> jpki_ap::CertType {
+        use jpki_ap::CertType::*;
+
         match self {
-            Self::Sign => jpki::ap::jpki::CertType::Sign,
-            Self::SignCA => jpki::ap::jpki::CertType::SignCA,
-            Self::Auth => jpki::ap::jpki::CertType::Auth,
-            Self::AuthCA => jpki::ap::jpki::CertType::AuthCA,
+            Self::Sign => Sign,
+            Self::SignCA => SignCA,
+            Self::Auth => Auth,
+            Self::AuthCA => AuthCA,
         }
     }
 }
@@ -120,7 +123,7 @@ fn main() -> Result<()> {
     let jpki_ap = jpki::ap::JpkiAp::open((), Box::new(card)).map_err(Error::APDU)?;
     match &cli.command {
         SubCommand::ReadCertificate { ty } => {
-            let ty: jpki::ap::jpki::CertType = (*ty).into();
+            let ty: jpki_ap::CertType = (*ty).into();
             let pin = if ty.is_pin_required() {
                 prompt_password()?
             } else {
