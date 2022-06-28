@@ -2,7 +2,9 @@
 
 mod jpki;
 
+#[cfg(feature = "digest")]
 pub mod digest;
+
 pub mod nfc;
 
 pub use self::jpki::ap;
@@ -34,11 +36,13 @@ where
     }
 
     /// Compute a signature for the message, unlocking the key with the PIN.
+    #[cfg(feature = "digest")]
     pub fn sign(&self, ctx: Ctx, pin: Vec<u8>, message: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
         self.jpki_ap.auth(ctx, pin, digest::calculate(message))
     }
 
     /// Verifies the signature for the message.
+    #[cfg(feature = "digest")]
     pub fn verify(
         &self,
         ctx: Ctx,
