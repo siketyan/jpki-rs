@@ -20,5 +20,7 @@ SUBCOMMANDS:
     help                Print this message or the help of the given subcommand(s)
     read-certificate    Reads a certificate in the JPKI card
     sign                Writes a signature of the document
+    surface             Reads the surface information from the card. PIN type B (DoB + Expiry +
+                            PIN) is required by default
     verify              Verifies the signed digest
 ```
