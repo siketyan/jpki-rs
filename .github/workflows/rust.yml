@@ -11,7 +11,7 @@ env:
 
 jobs:
   checks:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v2
         with:
@@ -72,15 +72,15 @@ jobs:
             cli: true
             android: false
           - target: x86_64-unknown-linux-gnu
-            host: ubuntu-20.04
+            host: ubuntu-22.04
             cli: true
             android: false
           - target: aarch64-linux-android
-            host: ubuntu-20.04
+            host: ubuntu-22.04
             cli: false
             android: true
           - target: armv7-linux-androideabi
-            host: ubuntu-20.04
+            host: ubuntu-22.04
             cli: false
             android: true
 
@@ -141,7 +141,7 @@ jobs:
           path: '.'
 
   deploy:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: ${{ github.event_name == 'release' }}
     needs:
       - build
