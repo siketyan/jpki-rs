@@ -1,6 +1,7 @@
 use crate::nfc::apdu::Error;
 
 /// An response that was received from the card
+#[derive(Default)]
 pub struct Response {
     payload: Vec<u8>,
     trailer: (u8, u8),
@@ -9,10 +10,7 @@ pub struct Response {
 impl Response {
     /// Creates an empty response.
     pub fn new() -> Self {
-        Self {
-            payload: vec![],
-            trailer: (0, 0),
-        }
+        Default::default()
     }
 
     /// Parses a response from the octets.
@@ -31,10 +29,7 @@ impl Response {
 
     /// Determines whether the response indicates success or not.
     pub fn is_ok(&self) -> bool {
-        match self.trailer {
-            (0x90, 0x00) | (0x91, 0x00) => true,
-            _ => false,
-        }
+        matches!(self.trailer, (0x90, 0x00) | (0x91, 0x00))
     }
 
     /// Converts the response to a result of octets.
@@ -49,10 +44,8 @@ impl Response {
     }
 }
 
-impl Into<Error> for (u8, u8) {
-    fn into(self) -> Error {
-        let (sw1, sw2) = self;
-
+impl From<(u8, u8)> for Error {
+    fn from((sw1, sw2): (u8, u8)) -> Self {
         Error { sw1, sw2 }
     }
 }
