@@ -1,20 +1,24 @@
 # jpki-rs
-A crate to communicate with JPKI card through an APDU delegate.
+Read certificates, sign and verify documents using your JPKI card.
 
 ## CLI
 ```
-jpki-cli 0.1.0
+jpki-cli 0.1.8
+Naoki Ikeguchi <me@s6n.jp>
+Read certificates, sign and verify documents using your JPKI card.
 
 USAGE:
-jpki-cli <SUBCOMMAND>
+    jpki-cli [OPTIONS] <SUBCOMMAND>
 
 OPTIONS:
--h, --help       Print help information
--V, --version    Print version information
+    -a, --auth       Uses the key-pair for user authentication, instead of for digital signature
+    -c, --ca         While reading certificates, reads their CA certificate instead
+    -h, --help       Print help information
+    -V, --version    Print version information
 
 SUBCOMMANDS:
-help                Print this message or the help of the given subcommand(s)
-read-certificate    Reads a certificate in the JPKI card
-sign                Writes a signature of the document
-verify              Verifies the signed digest
+    help                Print this message or the help of the given subcommand(s)
+    read-certificate    Reads a certificate in the JPKI card
+    sign                Writes a signature of the document
+    verify              Verifies the signed digest
 ```
