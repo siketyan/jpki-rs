@@ -40,10 +40,7 @@ impl CertType {
 
     /// Determines whether it is needed for fetching the certificate to unlock it with a PIN.
     pub fn is_pin_required(&self) -> bool {
-        match self {
-            Self::Sign => true,
-            _ => false,
-        }
+        matches!(self, Self::Sign)
     }
 }
 
@@ -110,7 +107,7 @@ where
     fn verify_pin(&self, ctx: Ctx, ef: [u8; 2], pin: Vec<u8>) -> Result<(), apdu::Error> {
         self.card
             .select_ef(ctx, ef.into())
-            .and_then(|_| self.card.verify(ctx, pin.into()))
+            .and_then(|_| self.card.verify(ctx, pin))
     }
 
     fn read_certificate_size(&self, ctx: Ctx) -> Result<u16, apdu::Error> {
