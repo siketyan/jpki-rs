@@ -64,14 +64,17 @@ jobs:
         include:
           - target: x86_64-pc-windows-msvc
             host: windows-2022
+            artifact: jpki-cli.exe
             cli: true
             android: false
           - target: x86_64-apple-darwin
             host: macos-12
+            artifact: jpki-cli
             cli: true
             android: false
           - target: x86_64-unknown-linux-gnu
             host: ubuntu-20.04
+            artifact: jpki-cli
             cli: true
             android: false
           - target: aarch64-linux-android
@@ -132,6 +135,13 @@ jobs:
           command: build
           args: --verbose --release --target=${{ matrix.target }} -p jpki-android
           use-cross: true
+
+      - uses: svenstaro/upload-release-action@v2
+        if: ${{ github.event_name == 'release' && matrix.cli }}
+        with:
+          file: target/release/${{ matrix.artifact }}
+          asset_name: jpki-cli-${{ matrix.target }}
+          overwrite: true
 
       - uses: actions/upload-artifact@v2
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
