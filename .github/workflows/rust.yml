@@ -33,7 +33,7 @@ jobs:
           components: rustfmt,clippy
 
       - name: Install libpcsclite
-        run: sudo apt install libudev-dev libpcsclite-dev
+        run: sudo apt update && sudo apt install libudev-dev libpcsclite-dev
 
       - name: Run clippy
         uses: actions-rs/clippy-check@v1
@@ -107,7 +107,7 @@ jobs:
 
       - name: Install libpcsclite
         if: ${{ matrix.cli && matrix.host == 'ubuntu-20.04' }}
-        run: sudo apt install libudev-dev libpcsclite-dev
+        run: sudo apt update && sudo apt install libudev-dev libpcsclite-dev
 
       - name: Install Android NDK
         if: ${{ matrix.android }}
@@ -164,8 +164,8 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Install libnfc
-        run: sudo apt install libnfc5 libnfc-dev udev libudev-dev pcscd libpcsclite-dev
+      - name: Install libpcsclite
+        run: sudo apt update && sudo apt install libudev-dev libpcsclite-dev
 
       - name: Install cargo-edit-version
         uses: actions-rs/cargo@v1
