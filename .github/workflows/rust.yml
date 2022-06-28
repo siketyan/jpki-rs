@@ -53,6 +53,9 @@ jobs:
           args: --verbose
 
   build:
+    needs:
+      - checks
+
     strategy:
       matrix:
         target:
