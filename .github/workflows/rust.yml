@@ -39,18 +39,19 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          args: --workspace
 
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: -- --check
+          args: --workspace -- --check
 
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --verbose
+          args: --workspace --verbose
 
   build:
     strategy:
