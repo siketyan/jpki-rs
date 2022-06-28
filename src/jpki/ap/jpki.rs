@@ -1,5 +1,7 @@
 //! JPKI AP
 
+use std::rc::Rc;
+
 use crate::jpki::card::Card;
 use crate::nfc;
 use crate::nfc::apdu;
@@ -50,7 +52,7 @@ where
     T: nfc::Card<Ctx>,
     Ctx: Copy,
 {
-    card: Box<Card<T, Ctx>>,
+    card: Rc<Card<T, Ctx>>,
 }
 
 impl<T, Ctx> JpkiAp<T, Ctx>
@@ -59,7 +61,7 @@ where
     Ctx: Copy,
 {
     /// Opens the AP in the card by selecting the DF.
-    pub fn open(ctx: Ctx, card: Box<Card<T, Ctx>>) -> Result<Self, apdu::Error> {
+    pub fn open(ctx: Ctx, card: Rc<Card<T, Ctx>>) -> Result<Self, apdu::Error> {
         let ap = Self { card };
 
         ap.card.select_df(ctx, DF_NAME.into()).map(|_| ap)
@@ -78,7 +80,7 @@ where
 
         self.card
             .select_ef(ctx, ty.into_efid().into())
-            .and_then(|_| self.read_certificate_size(ctx))
+            .and_then(|_| self.card.read_der_size(ctx))
             .and_then(|size| self.card.read(ctx, Some(size)))
     }
 
@@ -97,37 +99,10 @@ where
     }
 
     fn verify_auth_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
-        self.verify_pin(ctx, EF_AUTH_PIN, pin)
+        self.card.verify_pin(ctx, EF_AUTH_PIN, pin)
     }
 
     fn verify_sign_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
-        self.verify_pin(ctx, EF_SIGN_PIN, pin)
-    }
-
-    fn verify_pin(&self, ctx: Ctx, ef: [u8; 2], pin: Vec<u8>) -> Result<(), apdu::Error> {
-        self.card
-            .select_ef(ctx, ef.into())
-            .and_then(|_| self.card.verify(ctx, pin))
-    }
-
-    fn read_certificate_size(&self, ctx: Ctx) -> Result<u16, apdu::Error> {
-        let header = self.card.read(ctx, Some(7))?;
-        let mut offset: usize = if header[0] & 0x1f == 0x1f { 2 } else { 1 };
-        let head = header[offset] as u16;
-
-        offset += 1;
-
-        if head & 0x80 == 0 {
-            Ok(head + (offset as u16))
-        } else {
-            let mut size = 0u16;
-            for _ in 0..(head & 0x7f) {
-                size <<= 8;
-                size |= header[offset] as u16;
-                offset += 1;
-            }
-
-            Ok(size + (offset as u16))
-        }
+        self.card.verify_pin(ctx, EF_SIGN_PIN, pin)
     }
 }

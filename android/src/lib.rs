@@ -4,6 +4,8 @@
 extern crate log;
 extern crate android_log;
 
+use std::rc::Rc;
+
 use jni::objects::{GlobalRef, JByteBuffer, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jbyteArray, jlong, jobject, jstring, JNI_TRUE};
 use jni::JNIEnv;
@@ -73,7 +75,7 @@ impl nfc::apdu::Handler<JniContext<'_>> for JniNfcCard {
     }
 }
 
-impl jpki::nfc::Card<JniContext<'_>> for JniNfcCard {}
+impl nfc::Card<JniContext<'_>> for JniNfcCard {}
 
 impl<'a> JniNfcCard {
     pub fn new(delegate: GlobalRef) -> Self {
@@ -176,7 +178,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newJpkiAp(
 ) -> jlong {
     wrap!(jlong, {
         let ctx = JniContext { env };
-        let card = Box::from_raw(delegate as *mut Card<JniNfcCard, JniContext>);
+        let card = Rc::from_raw(delegate as *mut Card<JniNfcCard, JniContext>);
         let ap = JpkiAp::open(ctx, card)?;
 
         Ok(Box::into_raw(Box::new(ap)) as jlong)

@@ -1,7 +1,7 @@
 //! Collection of APs that corresponds with DF (Dedicated File) in the card
 
-mod card;
-
 pub mod jpki;
+pub mod surface;
 
 pub use self::jpki::JpkiAp;
+pub use self::surface::SurfaceAp;
