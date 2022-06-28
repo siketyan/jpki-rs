@@ -156,7 +156,7 @@ jobs:
       - uses: svenstaro/upload-release-action@v2
         if: ${{ github.event_name == 'release' && matrix.cli }}
         with:
-          file: target/release/${{ matrix.artifact }}
+          file: target/${{ matrix.target }}/release/${{ matrix.artifact }}
           asset_name: jpki-cli-${{ matrix.target }}
           overwrite: true
 
