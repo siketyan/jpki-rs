@@ -1,6 +1,6 @@
 [package]
 name = "jpki-cli"
-description = "A CLI to communicate with JPKI card."
+description = "Read certificates, sign and verify documents using your JPKI card."
 version = "0.1.8"
 license = "MIT"
 homepage = "https://github.com/siketyan/jpki-rs"
