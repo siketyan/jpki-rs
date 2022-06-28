@@ -5,9 +5,9 @@ use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::PathBuf;
 use std::process::exit;
 
-use clap::{ArgEnum, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use dialoguer::Password;
-use jpki::ap::jpki as jpki_ap;
+use jpki::ap::jpki::CertType;
 use jpki::nfc::apdu::{Command, Handler, Response};
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
@@ -44,35 +44,10 @@ impl<'a> Handler<Ctx> for NfcCard<'a> {
 
 impl<'a> jpki::nfc::Card<Ctx> for NfcCard<'a> {}
 
-#[derive(ArgEnum, Copy, Clone)]
-enum CertType {
-    Sign,
-    SignCA,
-    Auth,
-    AuthCA,
-}
-
-impl From<CertType> for jpki_ap::CertType {
-    fn from(ty: CertType) -> Self {
-        use CertType::*;
-
-        match ty {
-            Sign => Self::Sign,
-            SignCA => Self::SignCA,
-            Auth => Self::Auth,
-            AuthCA => Self::AuthCA,
-        }
-    }
-}
-
 #[derive(Subcommand)]
 enum SubCommand {
     /// Reads a certificate in the JPKI card.
-    ReadCertificate {
-        /// Type of the certificate to read.
-        #[clap(arg_enum)]
-        ty: CertType,
-    },
+    ReadCertificate,
     /// Writes a signature of the document.
     Sign {
         /// Path to write the signature.
@@ -94,6 +69,14 @@ enum SubCommand {
 struct Cli {
     #[clap(subcommand)]
     command: SubCommand,
+
+    /// Uses the key-pair for user authentication, instead of for digital signature.
+    #[clap(short, long, action)]
+    auth: bool,
+
+    /// While reading certificates, reads their CA certificate instead.
+    #[clap(short, long, action)]
+    ca: bool,
 }
 
 fn prompt_password() -> Result<Vec<u8>> {
@@ -123,9 +106,16 @@ fn run() -> Result<()> {
     let nfc_card = NfcCard { target };
     let card = jpki::Card::new(Box::new(nfc_card));
     let jpki_ap = jpki::ap::JpkiAp::open((), Box::new(card)).map_err(Error::Apdu)?;
+
+    let ty = match (cli.auth, cli.ca) {
+        (true, true) => CertType::AuthCA,
+        (true, _) => CertType::Auth,
+        (_, true) => CertType::SignCA,
+        _ => CertType::Sign,
+    };
+
     match &cli.command {
-        SubCommand::ReadCertificate { ty } => {
-            let ty: jpki_ap::CertType = (*ty).into();
+        SubCommand::ReadCertificate => {
             let pin = if ty.is_pin_required() {
                 prompt_password()?
             } else {
@@ -137,11 +127,11 @@ fn run() -> Result<()> {
             stdout().write_all(&certificate).map_err(Error::IO)?;
         }
         SubCommand::Sign { signature_path } => {
-            let signature = jpki_ap.sign(
-                (),
-                prompt_password()?,
-                jpki::digest::calculate(read_all(stdin())?),
-            )?;
+            let digest = jpki::digest::calculate(read_all(stdin())?);
+            let signature = match cli.auth {
+                true => jpki_ap.auth((), prompt_password()?, digest),
+                _ => jpki_ap.sign((), prompt_password()?, digest),
+            }?;
 
             let mut signature_file = File::create(signature_path).map_err(Error::IO)?;
             signature_file.write_all(&signature)?;
