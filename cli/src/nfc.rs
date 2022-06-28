@@ -1,145 +1,58 @@
+use std::ffi::{CStr, CString};
 use std::marker::PhantomData;
-use std::ptr;
 
-use nfc1_sys as libnfc;
+use pcsc::{Card, Protocols, Scope, ShareMode, MAX_BUFFER_SIZE};
+use tracing::debug;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("Input / output error, device may not be usable anymore without re-open it")]
-    IOError,
+    #[error("Error occurred while communicating with PC/SC: {0}")]
+    PcscError(#[from] pcsc::Error),
 
-    #[error("Invalid argument(s)")]
-    InvalidArgument,
-
-    #[error("Operation not supported by device")]
-    DeviceNotSupported,
-
-    #[error("No such device")]
-    NoSuchDevice,
-
-    #[error("Buffer overflow")]
-    BufferOverflow,
-
-    #[error("Operation timed out")]
-    OperationTimeout,
-
-    #[error("Operation aborted (by user)")]
-    OperationAborted,
-
-    #[error("Not (yet) implemented")]
-    NotImplemented,
-
-    #[error("Target released")]
-    TargetReleased,
-
-    #[error("Error while RF transmission")]
-    RFTransmission,
-
-    #[error("MIFARE Classic: authentication failed")]
-    MFCAuthenticationFailed,
-
-    #[error("Software error (allocation, file/pipe creation, etc.)")]
-    Software,
-
-    #[error("Device's internal chip error")]
-    Chip,
-
-    #[error("Error occurred during library initialization")]
-    InitializationFailed,
-
-    #[error("Unknown error: {0}")]
-    Unknown(i32),
-}
-
-impl From<i32> for Error {
-    fn from(e: i32) -> Self {
-        match e {
-            libnfc::NFC_EIO => Self::IOError,
-            libnfc::NFC_EINVARG => Self::InvalidArgument,
-            libnfc::NFC_EDEVNOTSUPP => Self::DeviceNotSupported,
-            libnfc::NFC_ENOTSUCHDEV => Self::NoSuchDevice,
-            libnfc::NFC_EOVFLOW => Self::BufferOverflow,
-            libnfc::NFC_ETIMEOUT => Self::OperationTimeout,
-            libnfc::NFC_EOPABORTED => Self::OperationAborted,
-            libnfc::NFC_ENOTIMPL => Self::NotImplemented,
-            libnfc::NFC_ETGRELEASED => Self::TargetReleased,
-            libnfc::NFC_ERFTRANS => Self::RFTransmission,
-            libnfc::NFC_EMFCAUTHFAIL => Self::MFCAuthenticationFailed,
-            libnfc::NFC_ESOFT => Self::Software,
-            libnfc::NFC_ECHIP => Self::Chip,
-            _ => Self::Unknown(e),
-        }
-    }
+    #[error("Reader not found on PC/SC service")]
+    ReaderNotFound,
 }
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
-macro_rules! as_result {
-    ($i: expr) => {
-        if ($i as i32) < nfc1_sys::NFC_SUCCESS as i32 {
-            Err(Error::from($i as i32))
-        } else {
-            Ok($i)
-        }
-    };
-}
-
 pub struct Context<'a> {
-    ptr: *mut libnfc::nfc_context,
+    ctx: pcsc::Context,
     _lifetime: PhantomData<&'a ()>,
 }
 
 impl<'a> Context<'a> {
     pub fn try_new() -> Result<Self> {
-        let mut ptr: *mut libnfc::nfc_context = ptr::null_mut();
-        unsafe { libnfc::nfc_init(&mut ptr) }
-
-        if ptr.is_null() {
-            Err(Error::InitializationFailed)
-        } else {
-            Ok(Self {
-                ptr,
-                _lifetime: Default::default(),
-            })
-        }
+        Ok(Self {
+            ctx: pcsc::Context::establish(Scope::User).map_err(Error::PcscError)?,
+            _lifetime: Default::default(),
+        })
     }
 
     pub fn open<'b>(&self) -> Result<Device<'b>> {
-        let ptr: *mut nfc1_sys::nfc_device = unsafe { libnfc::nfc_open(self.ptr, ptr::null_mut()) };
-        if ptr.is_null() {
-            Err(Error::InitializationFailed)
-        } else {
-            Ok(Device::new(ptr))
-        }
-    }
-}
+        let mut buf = [0u8; 2048];
 
-impl<'a> Drop for Context<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            libnfc::nfc_exit(self.ptr);
-        }
+        Ok(Device::new(
+            self.ctx
+                .list_readers(&mut buf)
+                .map_err(Error::PcscError)?
+                .next()
+                .ok_or(Error::ReaderNotFound)?,
+        ))
     }
 }
 
 pub struct Device<'a> {
-    ptr: *mut libnfc::nfc_device,
+    reader: Box<CString>,
     _lifetime: PhantomData<&'a ()>,
 }
 
 impl<'a> Device<'a> {
-    fn new(ptr: *mut libnfc::nfc_device) -> Self {
-        Self {
-            ptr,
-            _lifetime: Default::default(),
-        }
-    }
-}
+    fn new(reader: &CStr) -> Self {
+        debug!("Using device: {}", reader.to_str().unwrap_or_default());
 
-impl<'a> Drop for Device<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            libnfc::nfc_close(self.ptr);
+        Self {
+            reader: Box::new(reader.to_owned()),
+            _lifetime: Default::default(),
         }
     }
 }
@@ -149,59 +62,44 @@ pub struct Initiator<'a> {
 }
 
 impl<'a> Initiator<'a> {
-    pub fn select_dep_target(self) -> Result<Target<'a>> {
-        let target: *mut nfc1_sys::nfc_target = ptr::null_mut();
-        as_result!(unsafe {
-            nfc1_sys::nfc_initiator_select_dep_target(
-                self.device.ptr,
-                nfc1_sys::nfc_dep_mode_NDM_PASSIVE,
-                nfc1_sys::nfc_baud_rate_NBR_212,
-                ptr::null_mut(),
-                target,
-                1000,
-            )
-        })?;
+    pub fn select_dep_target(self, ctx: Context) -> Result<Target<'a>> {
+        let reader = self.device.reader.clone();
 
-        Ok(Target {
-            initiator: self,
-            _info: target,
-        })
+        Ok(Target::new(
+            ctx.ctx
+                .connect(&reader, ShareMode::Shared, Protocols::ANY)
+                .map_err(Error::PcscError)?,
+        ))
     }
 }
 
-impl<'a> TryFrom<Device<'a>> for Initiator<'a> {
-    type Error = Error;
-
-    fn try_from(device: Device<'a>) -> std::result::Result<Self, Self::Error> {
-        as_result!(unsafe { nfc1_sys::nfc_initiator_init(device.ptr) })?;
-
-        Ok(Self { device })
+impl<'a> From<Device<'a>> for Initiator<'a> {
+    fn from(device: Device<'a>) -> Self {
+        Self { device }
     }
 }
 
 pub struct Target<'a> {
-    initiator: Initiator<'a>,
-    _info: *mut nfc1_sys::nfc_target,
+    card: Card,
+    _lifetime: PhantomData<&'a ()>,
 }
 
 impl<'a> Target<'a> {
-    pub fn transmit(&self, tx: &[u8]) -> Result<Vec<u8>> {
-        let mut rx = vec![0u8; 512];
-        let len: i32 = as_result!(unsafe {
-            nfc1_sys::nfc_initiator_transceive_bytes(
-                self.initiator.device.ptr,
-                tx.as_ptr(),
-                tx.len() as nfc1_sys::size_t,
-                rx.as_mut_ptr(),
-                rx.len() as nfc1_sys::size_t,
-                0,
-            )
-        })?;
-
-        unsafe {
-            rx.set_len(len as usize);
+    fn new(card: Card) -> Self {
+        Self {
+            card,
+            _lifetime: Default::default(),
         }
+    }
 
-        Ok(rx)
+    pub fn transmit(&self, tx: &[u8]) -> Result<Vec<u8>> {
+        debug!("TX: {}", hex::encode(tx));
+
+        let mut rx = [0u8; MAX_BUFFER_SIZE];
+        let rx = self.card.transmit(tx, &mut rx).map_err(Error::PcscError)?;
+
+        debug!("RX: {}", hex::encode(rx));
+
+        Ok(Vec::from(rx))
     }
 }

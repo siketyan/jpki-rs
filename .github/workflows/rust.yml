@@ -32,8 +32,8 @@ jobs:
           override: true
           components: rustfmt,clippy
 
-      - name: Install libnfc
-        run: sudo apt install libnfc5 libnfc-dev udev libudev-dev
+      - name: Install libpcsclite
+        run: sudo apt install libudev-dev libpcsclite-dev
 
       - name: Run clippy
         uses: actions-rs/clippy-check@v1
@@ -56,21 +56,34 @@ jobs:
     strategy:
       matrix:
         target:
+          - x86_64-pc-windows-msvc
+          - x86_64-apple-darwin
           - x86_64-unknown-linux-gnu
           - aarch64-linux-android
           - armv7-linux-androideabi
         include:
+          - target: x86_64-pc-windows-msvc
+            host: windows-2022
+            cli: true
+            android: false
+          - target: x86_64-apple-darwin
+            host: macos-12
+            cli: true
+            android: false
           - target: x86_64-unknown-linux-gnu
+            host: ubuntu-20.04
             cli: true
             android: false
           - target: aarch64-linux-android
+            host: ubuntu-20.04
             cli: false
             android: true
           - target: armv7-linux-androideabi
+            host: ubuntu-20.04
             cli: false
             android: true
 
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.host }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -91,9 +104,9 @@ jobs:
           override: true
           target: ${{ matrix.target }}
 
-      - name: Install libnfc
-        if: ${{ matrix.cli }}
-        run: sudo apt install libnfc5 libnfc-dev udev libudev-dev pcscd libpcsclite-dev
+      - name: Install libpcsclite
+        if: ${{ matrix.cli && matrix.host == 'ubuntu-20.04' }}
+        run: sudo apt install libudev-dev libpcsclite-dev
 
       - name: Install Android NDK
         if: ${{ matrix.android }}
