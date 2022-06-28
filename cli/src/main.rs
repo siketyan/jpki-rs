@@ -1,7 +1,7 @@
 mod nfc;
 
 use std::fs::File;
-use std::io::{stdin, stdout, Read, Write};
+use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::PathBuf;
 use std::process::exit;
 
@@ -9,6 +9,8 @@ use clap::{ArgEnum, Parser, Subcommand};
 use dialoguer::Password;
 use jpki::ap::jpki as jpki_ap;
 use jpki::nfc::apdu::{Command, Handler, Response};
+use tracing::{error, info};
+use tracing_subscriber::EnvFilter;
 
 use crate::nfc::{Context, Initiator, Target};
 
@@ -110,7 +112,7 @@ fn read_all<R: Read>(mut r: R) -> Result<Vec<u8>> {
     Ok(buffer)
 }
 
-fn main() -> Result<()> {
+fn run() -> Result<()> {
     let cli: Cli = Cli::parse();
 
     let ctx = Context::try_new().map_err(Error::NFC)?;
@@ -151,13 +153,24 @@ fn main() -> Result<()> {
             let certificate = read_all(File::open(certificate_path).map_err(Error::IO)?)?;
             let signature = read_all(File::open(signature_path).map_err(Error::IO)?)?;
             if jpki::digest::verify(certificate, read_all(stdin())?, signature) {
-                println!("OK");
+                info!("OK")
             } else {
-                println!("NG");
+                error!("NG");
                 exit(1);
             }
         }
     }
 
     Ok(())
+}
+
+fn main() {
+    tracing_subscriber::fmt::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(stderr)
+        .init();
+
+    if let Err(e) = run() {
+        error!("{}", e);
+    }
 }

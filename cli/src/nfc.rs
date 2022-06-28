@@ -2,6 +2,7 @@ use std::ffi::{CStr, CString};
 use std::marker::PhantomData;
 
 use pcsc::{Card, Protocols, Scope, ShareMode, MAX_BUFFER_SIZE};
+use tracing::debug;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -47,6 +48,8 @@ pub struct Device<'a> {
 
 impl<'a> Device<'a> {
     fn new(reader: &CStr) -> Self {
+        debug!("Using device: {}", reader.to_str().unwrap_or_default());
+
         Self {
             reader: Box::new(reader.to_owned()),
             _lifetime: Default::default(),
@@ -90,8 +93,12 @@ impl<'a> Target<'a> {
     }
 
     pub fn transmit(&self, tx: &[u8]) -> Result<Vec<u8>> {
+        debug!("TX: {}", hex::encode(tx));
+
         let mut rx = [0u8; MAX_BUFFER_SIZE];
         let rx = self.card.transmit(tx, &mut rx).map_err(Error::PcscError)?;
+
+        debug!("RX: {}", hex::encode(rx));
 
         Ok(Vec::from(rx))
     }
