@@ -106,7 +106,7 @@ jobs:
           target: ${{ matrix.target }}
 
       - name: Install libpcsclite
-        if: ${{ matrix.cli && matrix.host == 'ubuntu-20.04' }}
+        if: ${{ matrix.cli && startsWith(matrix.host, 'ubuntu-') }}
         run: sudo apt update && sudo apt install libudev-dev libpcsclite-dev
 
       - name: Install Android NDK
