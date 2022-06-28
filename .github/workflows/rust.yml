@@ -33,7 +33,7 @@ jobs:
           components: rustfmt,clippy
 
       - name: Install libpcsclite
-        run: sudo apt install libpcsclite-dev
+        run: sudo apt install libudev-dev libpcsclite-dev
 
       - name: Run clippy
         uses: actions-rs/clippy-check@v1
@@ -104,9 +104,9 @@ jobs:
           override: true
           target: ${{ matrix.target }}
 
-      - name: Install libnfc
+      - name: Install libpcsclite
         if: ${{ matrix.cli && matrix.host == 'ubuntu-20.04' }}
-        run: sudo apt install libpcsclite-dev
+        run: sudo apt install libudev-dev libpcsclite-dev
 
       - name: Install Android NDK
         if: ${{ matrix.android }}
