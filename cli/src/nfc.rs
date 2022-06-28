@@ -63,11 +63,9 @@ pub struct Initiator<'a> {
 
 impl<'a> Initiator<'a> {
     pub fn select_dep_target(self, ctx: Context) -> Result<Target<'a>> {
-        let reader = self.device.reader.clone();
-
         Ok(Target::new(
             ctx.ctx
-                .connect(&reader, ShareMode::Shared, Protocols::ANY)
+                .connect(&self.device.reader, ShareMode::Shared, Protocols::ANY)
                 .map_err(Error::PcscError)?,
         ))
     }

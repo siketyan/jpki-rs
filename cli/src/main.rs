@@ -20,10 +20,10 @@ enum Error {
     IO(#[from] std::io::Error),
 
     #[error("Error occurred on communicating with NFC device: {0}")]
-    NFC(#[from] nfc::Error),
+    Nfc(#[from] nfc::Error),
 
     #[error("The card returned an error: {0}")]
-    APDU(#[from] jpki::nfc::apdu::Error),
+    Apdu(#[from] jpki::nfc::apdu::Error),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -52,15 +52,15 @@ enum CertType {
     AuthCA,
 }
 
-impl Into<jpki_ap::CertType> for CertType {
-    fn into(self) -> jpki_ap::CertType {
-        use jpki_ap::CertType::*;
+impl From<CertType> for jpki_ap::CertType {
+    fn from(ty: CertType) -> Self {
+        use CertType::*;
 
-        match self {
-            Self::Sign => Sign,
-            Self::SignCA => SignCA,
-            Self::Auth => Auth,
-            Self::AuthCA => AuthCA,
+        match ty {
+            Sign => Self::Sign,
+            SignCA => Self::SignCA,
+            Auth => Self::Auth,
+            AuthCA => Self::AuthCA,
         }
     }
 }
@@ -115,14 +115,14 @@ fn read_all<R: Read>(mut r: R) -> Result<Vec<u8>> {
 fn run() -> Result<()> {
     let cli: Cli = Cli::parse();
 
-    let ctx = Context::try_new().map_err(Error::NFC)?;
-    let device = ctx.open().map_err(Error::NFC)?;
+    let ctx = Context::try_new().map_err(Error::Nfc)?;
+    let device = ctx.open().map_err(Error::Nfc)?;
     let initiator = Initiator::from(device);
-    let target = initiator.select_dep_target(ctx).map_err(Error::NFC)?;
+    let target = initiator.select_dep_target(ctx).map_err(Error::Nfc)?;
 
     let nfc_card = NfcCard { target };
     let card = jpki::Card::new(Box::new(nfc_card));
-    let jpki_ap = jpki::ap::JpkiAp::open((), Box::new(card)).map_err(Error::APDU)?;
+    let jpki_ap = jpki::ap::JpkiAp::open((), Box::new(card)).map_err(Error::Apdu)?;
     match &cli.command {
         SubCommand::ReadCertificate { ty } => {
             let ty: jpki_ap::CertType = (*ty).into();
@@ -132,7 +132,7 @@ fn run() -> Result<()> {
                 vec![]
             };
 
-            let certificate = jpki_ap.read_certificate((), ty, pin).map_err(Error::APDU)?;
+            let certificate = jpki_ap.read_certificate((), ty, pin).map_err(Error::Apdu)?;
 
             stdout().write_all(&certificate).map_err(Error::IO)?;
         }
