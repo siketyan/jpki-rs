@@ -124,6 +124,19 @@ jobs:
           ln -s "$TOOLCHAIN/llvm-ar" "$TOOLCHAIN/${{ matrix.target }}-ar"
           ln -s "$TOOLCHAIN/llvm-ar" "$TOOLCHAIN/arm-linux-androideabi-ar"
 
+      - name: Install cargo-edit-version
+        if: ${{ github.event_name == 'release' }}
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --verbose cargo-edit-version
+
+      - name: Set version by the release tag
+        if: ${{ github.event_name == 'release' }}
+        run:
+          cargo-edit-version "${{ github.event.release.tag_name }}"
+          cd ./cli && cargo-edit-version "${{ github.event.release.tag_name }}"
+
       - name: Build (CLI)
         if: ${{ matrix.cli }}
         uses: actions-rs/cargo@v1
@@ -178,17 +191,6 @@ jobs:
 
       - name: Install libnfc
         run: sudo apt install libnfc5 libnfc-dev udev libudev-dev pcscd libpcsclite-dev
-
-      - name: Install cargo-edit-version
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: --verbose cargo-edit-version
-
-      - name: Set version by the release tag
-        run:
-          cargo-edit-version "${{ github.event.release.tag_name }}"
-          cd ./cli && cargo-edit-version "${{ github.event.release.tag_name }}"
 
       - name: Log into crates.io
         uses: actions-rs/cargo@v1
