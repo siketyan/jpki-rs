@@ -7,8 +7,8 @@ use std::process::exit;
 
 use clap::{ArgEnum, Parser, Subcommand};
 use dialoguer::Password;
-use jpki::nfc::apdu::{Command, Handler, Response};
 use jpki::ap::jpki as jpki_ap;
+use jpki::nfc::apdu::{Command, Handler, Response};
 
 use crate::nfc::{Context, Initiator, Target};
 
@@ -115,8 +115,8 @@ fn main() -> Result<()> {
 
     let ctx = Context::try_new().map_err(Error::NFC)?;
     let device = ctx.open().map_err(Error::NFC)?;
-    let initiator = Initiator::try_from(device).map_err(Error::NFC)?;
-    let target = initiator.select_dep_target().map_err(Error::NFC)?;
+    let initiator = Initiator::from(device);
+    let target = initiator.select_dep_target(ctx).map_err(Error::NFC)?;
 
     let nfc_card = NfcCard { target };
     let card = jpki::Card::new(Box::new(nfc_card));
