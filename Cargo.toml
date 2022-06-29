@@ -2,7 +2,7 @@
 name = "jpki"
 description = "Read certificates, sign and verify documents using your JPKI card."
 version = "0.1.8"
-license = "MIT"
+license = "LGPL-2.1-or-later"
 homepage = "https://github.com/siketyan/jpki-rs"
 repository = "https://github.com/siketyan/jpki-rs.git"
 authors = ["Naoki Ikeguchi <me@s6n.jp>"]
