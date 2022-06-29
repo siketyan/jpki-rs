@@ -19,6 +19,7 @@ digest = [
 ]
 
 [dependencies]
+apdu = { version = "0.1" }
 ring = { version = "0.17.0-alpha.10", optional = true }
 yasna = { version = "0.4", optional = true }
 x509-certificate = { version = "0.4", optional = true }

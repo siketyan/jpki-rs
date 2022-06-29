@@ -8,13 +8,12 @@ pub mod digest;
 pub mod der;
 pub mod nfc;
 
-use std::rc::Rc;
-
 pub use self::jpki::ap;
 pub use self::jpki::Card;
 
+use std::rc::Rc;
+
 use crate::ap::JpkiAp;
-use crate::nfc::apdu;
 
 /// High-level API to operate with authentication certificate and the key-pair
 pub struct ClientForAuth<T, Ctx>
@@ -32,7 +31,7 @@ where
     Ctx: Copy,
 {
     /// Initiates a client with the delegate.
-    pub fn create(ctx: Ctx, delegate: Box<T>) -> Result<Self, apdu::Error> {
+    pub fn create(ctx: Ctx, delegate: Box<T>) -> Result<Self, nfc::Error> {
         Ok(Self {
             jpki_ap: Box::new(JpkiAp::open(ctx, Rc::new(Card::new(delegate)))?),
         })
@@ -40,7 +39,7 @@ where
 
     /// Compute a signature for the message, unlocking the key with the PIN.
     #[cfg(feature = "digest")]
-    pub fn sign(&self, ctx: Ctx, pin: Vec<u8>, message: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
+    pub fn sign(&self, ctx: Ctx, pin: Vec<u8>, message: Vec<u8>) -> Result<Vec<u8>, nfc::Error> {
         self.jpki_ap.auth(ctx, pin, digest::calculate(message))
     }
 
@@ -51,7 +50,7 @@ where
         ctx: Ctx,
         message: Vec<u8>,
         signature: Vec<u8>,
-    ) -> Result<bool, apdu::Error> {
+    ) -> Result<bool, nfc::Error> {
         use crate::jpki::ap::jpki::CertType;
 
         Ok(digest::verify(

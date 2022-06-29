@@ -1,7 +1,8 @@
 //! Card Surface AP: Application to provide information indicated on the card surface.
 
-use crate::{apdu, nfc, Card};
 use std::rc::Rc;
+
+use crate::{nfc, Card};
 
 const DF_NAME: [u8; 10] = [0xD3, 0x92, 0x10, 0x00, 0x31, 0x00, 0x01, 0x01, 0x04, 0x02];
 const EF_ID: [u8; 2] = [0x00, 0x02];
@@ -32,14 +33,14 @@ where
     Ctx: Copy,
 {
     /// Opens the AP in the card by selecting the DF.
-    pub fn open(ctx: Ctx, card: Rc<Card<T, Ctx>>) -> Result<Self, apdu::Error> {
+    pub fn open(ctx: Ctx, card: Rc<Card<T, Ctx>>) -> Result<Self, nfc::Error> {
         let ap = Self { card };
 
         ap.card.select_df(ctx, DF_NAME.into()).map(|_| ap)
     }
 
     /// Reads the surface information as DER-encoded ASN.1 data.
-    pub fn read_surface(&self, ctx: Ctx, pin: Pin) -> Result<Vec<u8>, apdu::Error> {
+    pub fn read_surface(&self, ctx: Ctx, pin: Pin) -> Result<Vec<u8>, nfc::Error> {
         match pin {
             Pin::A(pin) => self.verify_pin_a(ctx, pin),
             Pin::B(pin) => self.verify_pin_b(ctx, pin),
@@ -49,11 +50,11 @@ where
         .and_then(|size| self.card.read(ctx, Some(size)))
     }
 
-    fn verify_pin_a(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
+    fn verify_pin_a(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), nfc::Error> {
         self.card.verify_pin(ctx, EF_PIN_A, pin)
     }
 
-    fn verify_pin_b(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
+    fn verify_pin_b(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), nfc::Error> {
         self.card.verify_pin(ctx, EF_PIN_B, pin)
     }
 }
