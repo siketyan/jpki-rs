@@ -14,7 +14,6 @@ pub use self::jpki::ap;
 pub use self::jpki::Card;
 
 use crate::ap::JpkiAp;
-use crate::jpki::ap::jpki::CertType;
 use crate::nfc::apdu;
 
 /// High-level API to operate with authentication certificate and the key-pair
@@ -23,6 +22,7 @@ where
     T: nfc::Card<Ctx>,
     Ctx: Copy,
 {
+    #[allow(dead_code)]
     jpki_ap: Box<JpkiAp<T, Ctx>>,
 }
 
@@ -52,6 +52,8 @@ where
         message: Vec<u8>,
         signature: Vec<u8>,
     ) -> Result<bool, apdu::Error> {
+        use crate::jpki::ap::jpki::CertType;
+
         Ok(digest::verify(
             self.jpki_ap.read_certificate(ctx, CertType::Auth, vec![])?,
             message,
