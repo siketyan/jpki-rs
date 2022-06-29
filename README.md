@@ -26,3 +26,11 @@ jpki = "0.1"
 
 ## 💚 Example
 See [jpki-cli](./cli) for an example usage of this crate.
+
+## 🔗 References
+- "Technical Specifications and Utilization Methods of My Number Cards" by Fujitsu Co., Ltd.  
+  https://www.fujitsu.com/jp/documents/about/resources/publications/magazine/backnumber/vol68-4/paper10.pdf"
+- "認証局の運営" by Japan Agency for Local Authority Information Systems  
+  https://www.jpki.go.jp/ca/index.html
+- jpki/myna  
+  https://github.com/jpki/myna
