@@ -21,7 +21,7 @@ static mut LAST_ERROR: Option<String> = None;
 #[derive(thiserror::Error, Debug)]
 enum Error {
     #[error("APDU Error: {0}")]
-    Apdu(#[from] nfc::apdu::Error),
+    Apdu(#[from] nfc::Error),
 
     #[error("JNI Error: {0}")]
     Jni(#[from] jni::errors::Error),
@@ -36,9 +36,9 @@ struct JniContext<'a> {
     env: JNIEnv<'a>,
 }
 
-impl nfc::apdu::Handler<JniContext<'_>> for JniNfcCard {
-    fn handle(&self, ctx: JniContext, command: nfc::apdu::Command) -> nfc::apdu::Response {
-        let mut bytes = command.into_bytes();
+impl nfc::Handler<JniContext<'_>> for JniNfcCard {
+    fn handle(&self, ctx: JniContext, command: nfc::Command) -> nfc::Response {
+        let mut bytes = Vec::from(command);
         let buffer = ctx.env.new_direct_byte_buffer(&mut bytes).unwrap();
         let obj = self.delegate.as_obj();
         let arg_val = JValue::Object(JObject::from(buffer));
@@ -61,12 +61,12 @@ impl nfc::apdu::Handler<JniContext<'_>> for JniNfcCard {
                 Ok(bytes) => {
                     info!("APDU Response Received: {:?}", bytes);
 
-                    nfc::apdu::Response::from_bytes(bytes.to_vec())
+                    bytes.to_vec().into()
                 }
                 Err(e) => {
                     error!("getDirectBufferAddress Error: {:?}", e);
 
-                    nfc::apdu::Response::new()
+                    nfc::Response::new()
                 }
             }
         } else {

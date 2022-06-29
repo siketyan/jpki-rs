@@ -12,7 +12,7 @@ use clap::{Parser, Subcommand};
 use dialoguer::Password;
 use jpki::ap::jpki::CertType;
 use jpki::ap::surface::Pin;
-use jpki::nfc::apdu::{Command, Handler, Response};
+use jpki::nfc::{Command, Handler, Response};
 use tracing::metadata::LevelFilter;
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
@@ -33,7 +33,7 @@ enum Error {
     Nfc(#[from] nfc::Error),
 
     #[error("The card returned an error: {0}")]
-    Apdu(#[from] jpki::nfc::apdu::Error),
+    Apdu(#[from] jpki::nfc::Error),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -45,10 +45,10 @@ struct NfcCard<'a> {
 
 impl<'a> Handler<Ctx> for NfcCard<'a> {
     fn handle(&self, _: Ctx, command: Command) -> Response {
-        let tx = command.into_bytes();
+        let tx = Vec::from(command);
         let rx = self.target.transmit(&tx).unwrap();
 
-        Response::from_bytes(rx)
+        rx.into()
     }
 }
 

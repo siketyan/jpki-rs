@@ -2,9 +2,10 @@
 
 use std::rc::Rc;
 
+use apdu::core::Error as ApduError;
+
 use crate::jpki::card::Card;
 use crate::nfc;
-use crate::nfc::apdu;
 
 const DF_NAME: [u8; 10] = [0xD3, 0x92, 0xF0, 0x00, 0x26, 0x01, 0x00, 0x00, 0x00, 0x01];
 const EF_AUTH: [u8; 2] = [0x00, 0x17];
@@ -61,7 +62,7 @@ where
     Ctx: Copy,
 {
     /// Opens the AP in the card by selecting the DF.
-    pub fn open(ctx: Ctx, card: Rc<Card<T, Ctx>>) -> Result<Self, apdu::Error> {
+    pub fn open(ctx: Ctx, card: Rc<Card<T, Ctx>>) -> Result<Self, ApduError> {
         let ap = Self { card };
 
         ap.card.select_df(ctx, DF_NAME.into()).map(|_| ap)
@@ -73,7 +74,7 @@ where
         ctx: Ctx,
         ty: CertType,
         pin: Vec<u8>,
-    ) -> Result<Vec<u8>, apdu::Error> {
+    ) -> Result<Vec<u8>, ApduError> {
         if ty.is_pin_required() {
             self.verify_sign_pin(ctx, pin)?;
         }
@@ -85,24 +86,24 @@ where
     }
 
     /// Computes a signature using the key-pair for authentication.
-    pub fn auth(&self, ctx: Ctx, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
+    pub fn auth(&self, ctx: Ctx, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, ApduError> {
         self.verify_auth_pin(ctx, pin)
             .and_then(|_| self.card.select_ef(ctx, EF_AUTH.into()))
             .and_then(|_| self.card.sign(ctx, digest))
     }
 
     /// Computes a signature using the key-pair for signing.
-    pub fn sign(&self, ctx: Ctx, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, apdu::Error> {
+    pub fn sign(&self, ctx: Ctx, pin: Vec<u8>, digest: Vec<u8>) -> Result<Vec<u8>, ApduError> {
         self.verify_sign_pin(ctx, pin)
             .and_then(|_| self.card.select_ef(ctx, EF_SIGN.into()))
             .and_then(|_| self.card.sign(ctx, digest))
     }
 
-    fn verify_auth_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
+    fn verify_auth_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), ApduError> {
         self.card.verify_pin(ctx, EF_AUTH_PIN, pin)
     }
 
-    fn verify_sign_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), apdu::Error> {
+    fn verify_sign_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), ApduError> {
         self.card.verify_pin(ctx, EF_SIGN_PIN, pin)
     }
 }

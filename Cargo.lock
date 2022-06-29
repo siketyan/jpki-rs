@@ -31,6 +31,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "apdu"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6fe30c96777d2b8836f270b64e1189e8d7d6b99b332f252699884423b8d9488"
+dependencies = [
+ "apdu-core",
+ "apdu-derive",
+]
+
+[[package]]
+name = "apdu-core"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d554813ff972f4c8cadcb6f9f22737733d44233c306578b0180e8a85c44bffc"
+
+[[package]]
+name = "apdu-derive"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3bbee06a67a5e368ab1e06df43c1d043f52e827db4a6ddf47214b2555f05336a"
+dependencies = [
+ "apdu-core",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -272,6 +300,7 @@ checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 name = "jpki"
 version = "0.2.1"
 dependencies = [
+ "apdu",
  "ring 0.17.0-alpha.11",
  "x509-certificate",
  "yasna",
