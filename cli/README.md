@@ -22,26 +22,42 @@ Alternatively, build from source using Cargo:
 cargo install jpki-cli
 ```
 
-## 💚 Example
+## 💚 Examples
+### Crypto AP
+Dumps the certificate for digital signature:
+```shell
+jpki-cli read-certificate > certificate.der
 ```
-jpki-cli 0.1.8
-Naoki Ikeguchi <me@s6n.jp>
-Read certificates, sign and verify documents using your JPKI card.
 
-USAGE:
-    jpki-cli [OPTIONS] <SUBCOMMAND>
+If you want the certificate for user authentication, append `--auth`:
+```shell
+jpki-cli read-certificate --auth > certificate.der
+```
 
-OPTIONS:
-    -a, --auth       Uses the key-pair for user authentication, instead of for digital signature
-    -c, --ca         While reading certificates, reads their CA certificate instead
-    -h, --help       Print help information
-    -V, --version    Print version information
+Signs the data from stdin using key-pair for digital signature:
+```shell
+cat plain.txt | jpki-cli sign > signature.sig
+```
 
-SUBCOMMANDS:
-    help                Print this message or the help of the given subcommand(s)
-    read-certificate    Reads a certificate in the JPKI card
-    sign                Writes a signature of the document
-    surface             Reads the surface information from the card. PIN type B (DoB + Expiry +
-                            PIN) is required by default
-    verify              Verifies the signed digest
+Verifies the signature using the dumped certificate:
+```shell
+cat plain.txt | jpki-cli verify certificate.der signature.sig
+```
+
+### Surface AP
+Dumps the photo using PIN B (DoB `YYMMDD` + Expiry `YYYY` + CVC `XXXX`):
+```shell
+jpki-cli surface photo > photo.jpg
+# PIN: YYMMDDYYYYXXXX
+```
+
+Using PIN A (My Number) instead:
+```shell
+jpki-cli surface --all photo > photo.jpg
+# PIN: XXXXYYYYZZZZ
+```
+
+For list of available data to dump, see the help:
+```shell
+jpki-cli surface --help
 ```
