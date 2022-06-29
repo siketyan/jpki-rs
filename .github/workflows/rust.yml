@@ -141,9 +141,11 @@ jobs:
           use-cross: true
 
       - name: Compress artifacts into .tar.gz file
-        run: tar -czf jpki-cli-${{ matrix.target }}.tar.gz ./target/${{ matrix.target }}/release/${{ matrix.artifact }}
+        if: ${{ matrix.cli }}
+        run: tar -C ./target/${{ matrix.target }}/release -czf jpki-cli-${{ matrix.target }}.tar.gz ${{ matrix.artifact }}
 
       - uses: actions/upload-artifact@v3
+        if: ${{ matrix.cli }}
         with:
           path: jpki-cli-${{ matrix.target }}.tar.gz
 
