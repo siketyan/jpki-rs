@@ -1,8 +1,10 @@
 use std::ffi::{CStr, CString};
 use std::marker::PhantomData;
+use std::thread::sleep;
+use std::time::Duration;
 
 use pcsc::{Card, Protocols, Scope, ShareMode, MAX_BUFFER_SIZE};
-use tracing::debug;
+use tracing::{debug, info};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -55,25 +57,32 @@ impl<'a> Device<'a> {
             _lifetime: Default::default(),
         }
     }
-}
 
-pub struct Initiator<'a> {
-    device: Device<'a>,
-}
+    pub fn connect(&self, ctx: Context) -> Result<Target<'a>> {
+        // Waits for touching card, polling for each seconds.
+        debug!("Waiting for a card");
 
-impl<'a> Initiator<'a> {
-    pub fn select_dep_target(self, ctx: Context) -> Result<Target<'a>> {
-        Ok(Target::new(
-            ctx.ctx
-                .connect(&self.device.reader, ShareMode::Shared, Protocols::ANY)
-                .map_err(Error::PcscError)?,
-        ))
-    }
-}
+        loop {
+            match ctx
+                .ctx
+                .connect(&self.reader, ShareMode::Shared, Protocols::ANY)
+            {
+                Ok(card) => {
+                    debug!("Connected to your card");
 
-impl<'a> From<Device<'a>> for Initiator<'a> {
-    fn from(device: Device<'a>) -> Self {
-        Self { device }
+                    return Ok(Target::new(card));
+                }
+                Err(e) => match e {
+                    pcsc::Error::NoSmartcard => {
+                        info!("Still waiting for your card...");
+                        sleep(Duration::from_secs(1));
+
+                        continue;
+                    }
+                    _ => return Err(Error::PcscError(e)),
+                },
+            }
+        }
     }
 }
 
