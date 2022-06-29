@@ -13,10 +13,11 @@ use dialoguer::Password;
 use jpki::ap::jpki::CertType;
 use jpki::ap::surface::Pin;
 use jpki::nfc::apdu::{Command, Handler, Response};
+use tracing::metadata::LevelFilter;
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
-use crate::nfc::{Context, Initiator, Target};
+use crate::nfc::{Context, Target};
 
 const PIN_HINT_USER_AUTHENTICATION: &str = "PIN for user authentication (4 digits)";
 const PIN_HINT_DIGITAL_SIGNATURE: &str = "PIN for digital signature (max. 16 characters)";
@@ -165,8 +166,7 @@ fn run() -> Result<()> {
 
     let ctx = Context::try_new().map_err(Error::Nfc)?;
     let device = ctx.open().map_err(Error::Nfc)?;
-    let initiator = Initiator::from(device);
-    let target = initiator.select_dep_target(ctx).map_err(Error::Nfc)?;
+    let target = device.connect(ctx).map_err(Error::Nfc)?;
 
     let nfc_card = NfcCard { target };
     let card = Rc::new(jpki::Card::new(Box::new(nfc_card)));
@@ -250,7 +250,11 @@ fn run() -> Result<()> {
 
 fn main() {
     tracing_subscriber::fmt::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
+        .with_env_filter(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .from_env_lossy(),
+        )
         .with_writer(stderr)
         .init();
 
