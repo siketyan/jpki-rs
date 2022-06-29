@@ -206,6 +206,14 @@ jobs:
           command: publish
           args: --verbose --allow-dirty -p jpki
 
+      - name: Wait for the crate uploaded
+        run: |
+          until curl -fsSL "https://crates.io/crates/jpki/${{ github.event.release.tag_name }}"
+          do
+            echo "Still waiting..."
+            sleep 5
+          done
+
       - name: Publish to crates.io (CLI)
         uses: actions-rs/cargo@v1
         with:
