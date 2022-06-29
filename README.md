@@ -1,4 +1,6 @@
 # jpki-rs
+[![crates.io](https://img.shields.io/crates/v/jpki.svg)](https://crates.io/crates/jpki)
+[![docs](https://docs.rs/jpki/badge.svg)](https://docs.rs/jpki/)
 [![Rust](https://github.com/siketyan/jpki-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/siketyan/jpki-rs/actions/workflows/rust.yml)
 
 Read certificates, sign and verify documents using your JPKI card.
