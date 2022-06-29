@@ -33,7 +33,7 @@ jobs:
           components: rustfmt,clippy
 
       - name: Install libpcsclite
-        run: sudo apt update && sudo apt install libudev-dev libpcsclite-dev
+        run: sudo apt update && sudo apt install libpcsclite-dev
 
       - name: Run clippy
         uses: actions-rs/clippy-check@v1
@@ -119,7 +119,7 @@ jobs:
 
       - name: Install libpcsclite
         if: ${{ matrix.cli && startsWith(matrix.host, 'ubuntu-') }}
-        run: sudo apt update && sudo apt install libudev-dev libpcsclite-dev
+        run: sudo apt update && sudo apt install libpcsclite-dev
 
       - name: Install Android NDK
         if: ${{ matrix.android }}
@@ -192,7 +192,7 @@ jobs:
           override: true
 
       - name: Install libpcsclite
-        run: sudo apt update && sudo apt install libudev-dev libpcsclite-dev
+        run: sudo apt update && sudo apt install libpcsclite-dev
 
       - name: Log into crates.io
         uses: actions-rs/cargo@v1
