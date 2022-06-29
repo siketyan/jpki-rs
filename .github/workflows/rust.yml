@@ -13,11 +13,11 @@ jobs:
   checks:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
@@ -92,11 +92,11 @@ jobs:
 
     runs-on: ${{ matrix.host }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
@@ -140,14 +140,20 @@ jobs:
           args: --verbose --release --target=${{ matrix.target }} -p jpki-android
           use-cross: true
 
+      - name: Compress artifacts into .tar.gz file
+        run: tar -czf jpki-cli-${{ matrix.target }}.tar.gz ./target/${{ matrix.target }}/release/${{ matrix.artifact }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: jpki-cli-${{ matrix.target }}.tar.gz
+
       - uses: svenstaro/upload-release-action@v2
         if: ${{ github.event_name == 'release' && matrix.cli }}
         with:
-          file: target/${{ matrix.target }}/release/${{ matrix.artifact }}
-          asset_name: jpki-cli-${{ matrix.target }}
+          file: jpki-cli-${{ matrix.target }}.tar.gz
           overwrite: true
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         if: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
         with:
           name: workspace
@@ -159,11 +165,11 @@ jobs:
     needs:
       - build
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: workspace
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
