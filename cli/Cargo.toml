@@ -6,7 +6,7 @@ license = "LGPL-2.1-or-later"
 homepage = "https://github.com/siketyan/jpki-rs"
 repository = "https://github.com/siketyan/jpki-rs.git"
 authors = ["Naoki Ikeguchi <me@s6n.jp>"]
-readme = "../README.md"
+readme = "README.md"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
