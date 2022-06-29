@@ -18,6 +18,12 @@ use tracing_subscriber::EnvFilter;
 
 use crate::nfc::{Context, Initiator, Target};
 
+const PIN_HINT_USER_AUTHENTICATION: &str = "PIN for user authentication (4 digits)";
+const PIN_HINT_DIGITAL_SIGNATURE: &str = "PIN for digital signature (max. 16 characters)";
+const PIN_HINT_SURFACE_A: &str = "PIN type A for card surface (Your my number, 12 digits)";
+const PIN_HINT_SURFACE_B: &str =
+    "PIN type B for card surface (DoB 'YYMMDD' + Expiry 'YYYY' + CVC 'XXXX')";
+
 #[derive(Debug, thiserror::Error)]
 enum Error {
     #[error("I/O error occurred: {0}")]
@@ -138,9 +144,9 @@ struct Cli {
     ca: bool,
 }
 
-fn prompt_password() -> Result<Vec<u8>> {
+fn pin_prompt(hint: &'static str) -> Result<Vec<u8>> {
     Password::new()
-        .with_prompt("PIN")
+        .with_prompt(hint)
         .interact()
         .map(|p| p.into_bytes())
         .map_err(Error::IO)
@@ -178,7 +184,7 @@ fn run() -> Result<()> {
         SubCommand::ReadCertificate => {
             let jpki_ap = open_jpki_ap()?;
             let pin = if ty.is_pin_required() {
-                prompt_password()?
+                pin_prompt(PIN_HINT_DIGITAL_SIGNATURE)?
             } else {
                 vec![]
             };
@@ -191,8 +197,8 @@ fn run() -> Result<()> {
             let jpki_ap = open_jpki_ap()?;
             let digest = jpki::digest::calculate(read_all(stdin())?);
             let signature = match cli.auth {
-                true => jpki_ap.auth((), prompt_password()?, digest),
-                _ => jpki_ap.sign((), prompt_password()?, digest),
+                true => jpki_ap.auth((), pin_prompt(PIN_HINT_USER_AUTHENTICATION)?, digest),
+                _ => jpki_ap.sign((), pin_prompt(PIN_HINT_DIGITAL_SIGNATURE)?, digest),
             }?;
 
             let mut signature_file = File::create(signature_path).map_err(Error::IO)?;
@@ -216,9 +222,9 @@ fn run() -> Result<()> {
 
             let surface_ap = open_surface_ap()?;
             let pin = match all {
-                true => Pin::A,
-                _ => Pin::B,
-            }(prompt_password()?);
+                true => Pin::A(pin_prompt(PIN_HINT_SURFACE_A)?),
+                _ => Pin::B(pin_prompt(PIN_HINT_SURFACE_B)?),
+            };
 
             let info = surface_ap.read_surface((), pin).map_err(Error::Apdu)?;
             let surface = Surface::from(info.as_slice());
