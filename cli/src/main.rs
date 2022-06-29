@@ -20,9 +20,8 @@ use crate::nfc::{Context, Initiator, Target};
 
 const PIN_HINT_USER_AUTHENTICATION: &str = "PIN for user authentication (4 digits)";
 const PIN_HINT_DIGITAL_SIGNATURE: &str = "PIN for digital signature (max. 16 characters)";
-const PIN_HINT_SURFACE_A: &str = "PIN type A for card surface (Your my number, 12 digits)";
-const PIN_HINT_SURFACE_B: &str =
-    "PIN type B for card surface (DoB 'YYMMDD' + Expiry 'YYYY' + CVC 'XXXX')";
+const PIN_HINT_SURFACE: &str =
+    "PIN type A (Your my number, 12 digits), or type B (DoB 'YYMMDD' + Expiry 'YYYY' + CVC 'XXXX') alternatively (some information unavailable), for card surface";
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -116,15 +115,11 @@ enum SubCommand {
         signature_path: PathBuf,
     },
     /// Reads the surface information from the card.
-    /// PIN type B (DoB + Expiry + PIN) is required by default.
+    /// Either PIN type A (Your my number, 12 digits), or type B (DoB 'YYMMDD' + Expiry 'YYYY' + CVC 'XXXX')
+    /// alternatively (some information unavailable), is required.
     Surface {
         #[clap(arg_enum)]
         ty: SurfaceContentType,
-
-        /// Reads all of available information.
-        /// PIN type A (My Number in 12 digits) is required.
-        #[clap(long, action)]
-        all: bool,
     },
 }
 
@@ -217,13 +212,14 @@ fn run() -> Result<()> {
                 exit(1);
             }
         }
-        SubCommand::Surface { ty, all } => {
+        SubCommand::Surface { ty } => {
             use SurfaceContentType::*;
 
             let surface_ap = open_surface_ap()?;
-            let pin = match all {
-                true => Pin::A(pin_prompt(PIN_HINT_SURFACE_A)?),
-                _ => Pin::B(pin_prompt(PIN_HINT_SURFACE_B)?),
+            let pin = pin_prompt(PIN_HINT_SURFACE)?;
+            let pin = match pin.len() {
+                12 => Pin::A(pin_prompt(PIN_HINT_SURFACE)?),
+                _ => Pin::B(pin_prompt(PIN_HINT_SURFACE)?),
             };
 
             let info = surface_ap.read_surface((), pin).map_err(Error::Apdu)?;
