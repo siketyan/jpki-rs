@@ -1,4 +1,5 @@
 # jpki-cli
+[![crates.io](https://img.shields.io/crates/v/jpki-cli.svg)](https://crates.io/crates/jpki-cli)
 [![Rust](https://github.com/siketyan/jpki-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/siketyan/jpki-rs/actions/workflows/rust.yml)
 
 Easy yet simple CLI to access your JPKI card.
