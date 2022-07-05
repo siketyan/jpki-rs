@@ -48,7 +48,7 @@ impl CertType {
 /// An AP to sign or verify messages using a key-pair issued by JPKI
 pub struct JpkiAp<T, Ctx>
 where
-    T: nfc::Card<Ctx>,
+    T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
     card: Rc<Card<T, Ctx>>,
@@ -56,7 +56,7 @@ where
 
 impl<T, Ctx> JpkiAp<T, Ctx>
 where
-    T: nfc::Card<Ctx>,
+    T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
     /// Opens the AP in the card by selecting the DF.

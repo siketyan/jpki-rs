@@ -12,7 +12,7 @@ use clap::{Parser, Subcommand};
 use dialoguer::Password;
 use jpki::ap::jpki::CertType;
 use jpki::ap::surface::Pin;
-use jpki::nfc::{Command, Handler, Response};
+use jpki::nfc::{Command, HandlerInCtx, Response};
 use tracing::metadata::LevelFilter;
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
@@ -43,16 +43,14 @@ struct NfcCard<'a> {
     target: Target<'a>,
 }
 
-impl<'a> Handler<Ctx> for NfcCard<'a> {
-    fn handle(&self, _: Ctx, command: Command) -> Response {
+impl<'a> HandlerInCtx<Ctx> for NfcCard<'a> {
+    fn handle_in_ctx(&self, _: Ctx, command: Command) -> Response {
         let tx = Vec::from(command);
         let rx = self.target.transmit(&tx).unwrap();
 
         rx.into()
     }
 }
-
-impl<'a> jpki::nfc::Card<Ctx> for NfcCard<'a> {}
 
 #[derive(Debug, Default)]
 struct Surface {

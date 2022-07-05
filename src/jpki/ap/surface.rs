@@ -21,7 +21,7 @@ pub enum Pin {
 
 pub struct SurfaceAp<T, Ctx>
 where
-    T: nfc::Card<Ctx>,
+    T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
     card: Rc<Card<T, Ctx>>,
@@ -29,7 +29,7 @@ where
 
 impl<T, Ctx> SurfaceAp<T, Ctx>
 where
-    T: nfc::Card<Ctx>,
+    T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
     /// Opens the AP in the card by selecting the DF.

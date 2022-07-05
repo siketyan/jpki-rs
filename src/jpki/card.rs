@@ -19,7 +19,7 @@ const SIGN_P2: u8 = 0x80;
 /// An adapter to communicate with the card through the delegate
 pub struct Card<T, Ctx>
 where
-    T: nfc::Card<Ctx>,
+    T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
     delegate: Box<T>,
@@ -28,7 +28,7 @@ where
 
 impl<T, Ctx> Card<T, Ctx>
 where
-    T: nfc::Card<Ctx>,
+    T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
     /// Initiates an adapter with the delegate.
@@ -114,6 +114,6 @@ where
     }
 
     fn handle(&self, ctx: Ctx, command: impl Into<Command>) -> Result<Vec<u8>, nfc::Error> {
-        Result::from(self.delegate.handle(ctx, command.into())).map_err(|e| e.into())
+        Result::from(self.delegate.handle_in_ctx(ctx, command.into())).map_err(|e| e.into())
     }
 }
