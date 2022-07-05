@@ -1,35 +1,6 @@
-[package]
-name = "jpki"
-description = "Read certificates, sign and verify documents using your JPKI card."
-version = "0.2.1"
-license = "LGPL-2.1-or-later"
-homepage = "https://github.com/siketyan/jpki-rs"
-repository = "https://github.com/siketyan/jpki-rs.git"
-authors = [
-    # Thank you for your contribution!
-    # While contributing to this project, feed free to add your name here :)
-    "Naoki Ikeguchi <me@s6n.jp>",
-]
-readme = "README.md"
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[features]
-digest = [
-    "ring",
-    "yasna",
-    "x509-certificate",
-]
-
-[dependencies]
-apdu = { version = "0.2" }
-ring = { version = "0.17.0-alpha.10", optional = true }
-yasna = { version = "0.4", optional = true }
-x509-certificate = { version = "0.4", optional = true }
-
 [workspace]
 members = [
-    "android",
+    "core",
     "cli",
+    "ffi/android",
 ]
