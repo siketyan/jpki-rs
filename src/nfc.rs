@@ -1,6 +1,6 @@
 //! Communicating with the card using NFC technology
 
-pub use apdu::core::Error;
+pub use apdu::Error;
 pub use apdu::{Command, Response};
 
 /// An handler to handle an APDU command and receive a response

@@ -77,7 +77,7 @@ impl nfc::Handler<JniContext<'_>> for JniNfcCard {
 
 impl nfc::Card<JniContext<'_>> for JniNfcCard {}
 
-impl<'a> JniNfcCard {
+impl JniNfcCard {
     pub fn new(delegate: GlobalRef) -> Self {
         Self { delegate }
     }
