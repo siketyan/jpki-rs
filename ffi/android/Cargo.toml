@@ -1,5 +1,5 @@
 [package]
-name = "jpki-android"
+name = "jpki-ffi-android"
 description = "Read certificates, sign and verify documents using your JPKI card."
 version = "0.2.1"
 license = "LGPL-2.1-or-later"
