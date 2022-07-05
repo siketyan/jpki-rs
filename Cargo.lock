@@ -308,17 +308,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "jpki-android"
-version = "0.2.1"
-dependencies = [
- "android_log",
- "jni",
- "jpki",
- "log 0.4.17",
- "thiserror",
-]
-
-[[package]]
 name = "jpki-cli"
 version = "0.2.1"
 dependencies = [
@@ -331,6 +320,17 @@ dependencies = [
  "thiserror",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "jpki-ffi-android"
+version = "0.2.1"
+dependencies = [
+ "android_log",
+ "jni",
+ "jpki",
+ "log 0.4.17",
+ "thiserror",
 ]
 
 [[package]]
