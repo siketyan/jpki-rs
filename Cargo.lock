@@ -299,7 +299,7 @@ checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
 name = "jpki"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "apdu",
  "ring 0.17.0-alpha.11",
@@ -309,7 +309,7 @@ dependencies = [
 
 [[package]]
 name = "jpki-cli"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "apdu",
  "clap",
@@ -324,7 +324,7 @@ dependencies = [
 
 [[package]]
 name = "jpki-ffi-android"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "android_log",
  "jni",
