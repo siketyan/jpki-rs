@@ -1,19 +1,18 @@
 //! A crate to communicate with JPKI card through an APDU delegate.
 
-mod jpki;
-
 #[cfg(feature = "digest")]
 pub mod digest;
 
+pub mod ap;
+pub mod card;
 pub mod der;
 pub mod nfc;
 
-pub use self::jpki::ap;
-pub use self::jpki::Card;
+pub use card::Card;
 
 use std::rc::Rc;
 
-use crate::ap::JpkiAp;
+use ap::JpkiAp;
 
 /// High-level API to operate with authentication certificate and the key-pair
 pub struct ClientForAuth<T, Ctx>
@@ -51,7 +50,7 @@ where
         message: Vec<u8>,
         signature: Vec<u8>,
     ) -> Result<bool, nfc::Error> {
-        use crate::jpki::ap::jpki::CertType;
+        use ap::jpki::CertType;
 
         Ok(digest::verify(
             self.jpki_ap.read_certificate(ctx, CertType::Auth, vec![])?,
