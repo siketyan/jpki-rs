@@ -18,7 +18,7 @@ use crate::ap::JpkiAp;
 /// High-level API to operate with authentication certificate and the key-pair
 pub struct ClientForAuth<T, Ctx>
 where
-    T: nfc::Card<Ctx>,
+    T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
     #[allow(dead_code)]
@@ -27,7 +27,7 @@ where
 
 impl<T, Ctx> ClientForAuth<T, Ctx>
 where
-    T: nfc::Card<Ctx>,
+    T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
     /// Initiates a client with the delegate.

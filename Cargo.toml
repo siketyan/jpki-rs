@@ -5,7 +5,11 @@ version = "0.2.1"
 license = "LGPL-2.1-or-later"
 homepage = "https://github.com/siketyan/jpki-rs"
 repository = "https://github.com/siketyan/jpki-rs.git"
-authors = ["Naoki Ikeguchi <me@s6n.jp>"]
+authors = [
+    # Thank you for your contribution!
+    # While contributing to this project, feed free to add your name here :)
+    "Naoki Ikeguchi <me@s6n.jp>",
+]
 readme = "README.md"
 edition = "2018"
 
@@ -19,7 +23,7 @@ digest = [
 ]
 
 [dependencies]
-apdu = { version = "0.1" }
+apdu = { version = "0.2" }
 ring = { version = "0.17.0-alpha.10", optional = true }
 yasna = { version = "0.4", optional = true }
 x509-certificate = { version = "0.4", optional = true }

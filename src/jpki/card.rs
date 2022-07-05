@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use apdu::Command;
+use apdu::{command, Command};
 
 use crate::der::entire_size_from_partial;
 use crate::nfc;
@@ -19,7 +19,7 @@ const SIGN_P2: u8 = 0x80;
 /// An adapter to communicate with the card through the delegate
 pub struct Card<T, Ctx>
 where
-    T: nfc::Card<Ctx>,
+    T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
     delegate: Box<T>,
@@ -28,7 +28,7 @@ where
 
 impl<T, Ctx> Card<T, Ctx>
 where
-    T: nfc::Card<Ctx>,
+    T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
     /// Initiates an adapter with the delegate.
@@ -41,20 +41,14 @@ where
 
     /// Selects a DF with their name.
     pub fn select_df(&self, ctx: Ctx, name: Vec<u8>) -> Result<(), nfc::Error> {
-        Result::from(
-            self.delegate
-                .handle(ctx, Command::select_file(SELECT_P1_DF, SELECT_P2, name)),
-        )
-        .map(|_| ())
+        self.handle(ctx, command::select_file(SELECT_P1_DF, SELECT_P2, name))
+            .map(|_| ())
     }
 
     /// Selects a EF with their name.
     pub fn select_ef(&self, ctx: Ctx, id: Vec<u8>) -> Result<(), nfc::Error> {
-        Result::from(
-            self.delegate
-                .handle(ctx, Command::select_file(SELECT_P1_EF, SELECT_P2, id)),
-        )
-        .map(|_| ())
+        self.handle(ctx, command::select_file(SELECT_P1_EF, SELECT_P2, id))
+            .map(|_| ())
     }
 
     /// Reads binary from the selected file for `len` octets max.
@@ -78,9 +72,7 @@ where
                 _ => 0,
             };
 
-            let mut fragment =
-                Result::from(self.delegate.handle(ctx, Command::read_binary(p1, p2, le)))?;
-
+            let mut fragment = self.handle(ctx, command::read_binary(p1, p2, le))?;
             let length = fragment.len();
 
             buf.append(&mut fragment);
@@ -96,17 +88,16 @@ where
 
     /// Verifies the PIN.
     pub fn verify(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), nfc::Error> {
-        Result::from(self.delegate.handle(ctx, Command::verify(VERIFY_P2, pin))).map(|_| ())
+        self.handle(ctx, command::verify(VERIFY_P2, pin))
+            .map(|_| ())
     }
 
     /// Computes a signature using the selected key.
     pub fn sign(&self, ctx: Ctx, digest: Vec<u8>) -> Result<Vec<u8>, nfc::Error> {
-        self.delegate
-            .handle(
-                ctx,
-                apdu::Command::new_with_payload_le(SIGN_CLA, SIGN_INS, SIGN_P1, SIGN_P2, 0, digest),
-            )
-            .into()
+        self.handle(
+            ctx,
+            Command::new_with_payload_le(SIGN_CLA, SIGN_INS, SIGN_P1, SIGN_P2, 0, digest),
+        )
     }
 
     /// Selects a EF then verifies the pin using the EF.
@@ -120,5 +111,9 @@ where
         let header = self.read(ctx, Some(7))?;
 
         Ok(entire_size_from_partial(&header) as u16)
+    }
+
+    fn handle(&self, ctx: Ctx, command: impl Into<Command>) -> Result<Vec<u8>, nfc::Error> {
+        Result::from(self.delegate.handle_in_ctx(ctx, command.into())).map_err(|e| e.into())
     }
 }

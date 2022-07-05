@@ -36,8 +36,8 @@ struct JniContext<'a> {
     env: JNIEnv<'a>,
 }
 
-impl nfc::Handler<JniContext<'_>> for JniNfcCard {
-    fn handle(&self, ctx: JniContext, command: nfc::Command) -> nfc::Response {
+impl nfc::HandlerInCtx<JniContext<'_>> for JniNfcCard {
+    fn handle_in_ctx(&self, ctx: JniContext, command: nfc::Command) -> nfc::Response {
         let mut bytes = Vec::from(command);
         let buffer = ctx.env.new_direct_byte_buffer(&mut bytes).unwrap();
         let obj = self.delegate.as_obj();
@@ -75,9 +75,7 @@ impl nfc::Handler<JniContext<'_>> for JniNfcCard {
     }
 }
 
-impl nfc::Card<JniContext<'_>> for JniNfcCard {}
-
-impl<'a> JniNfcCard {
+impl JniNfcCard {
     pub fn new(delegate: GlobalRef) -> Self {
         Self { delegate }
     }
