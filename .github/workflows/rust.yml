@@ -208,7 +208,7 @@ jobs:
 
       - name: Wait for the crate uploaded
         run: |
-          until curl -fsSL "https://crates.io/crates/jpki/${{ github.event.release.tag_name }}"
+          until curl -fsSL -H "Accept: text/html" "https://crates.io/crates/jpki/${{ github.event.release.tag_name }}"
           do
             echo "Still waiting..."
             sleep 5
