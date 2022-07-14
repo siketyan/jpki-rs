@@ -23,6 +23,7 @@ const PIN_HINT_USER_AUTHENTICATION: &str = "PIN for user authentication (4 digit
 const PIN_HINT_DIGITAL_SIGNATURE: &str = "PIN for digital signature (max. 16 characters)";
 const PIN_HINT_SURFACE: &str =
     "PIN type A (Your my number, 12 digits), or type B (DoB 'YYMMDD' + Expiry 'YYYY' + CVC 'XXXX') alternatively (some information unavailable), for card surface";
+const PIN_HINT_SUPPORT: &str = "PIN for text filling support (4 digits)";
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -34,6 +35,9 @@ enum Error {
 
     #[error("The card returned an error: {0}")]
     Apdu(#[from] jpki::nfc::Error),
+
+    #[error("JSON serializing / deserializing failed: {0}")]
+    Json(#[from] serde_json::Error),
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -65,6 +69,12 @@ enum SurfaceContentType {
     Code,
 }
 
+#[derive(Clone, clap::ArgEnum)]
+enum SupportContentType {
+    MyNumber,
+    Attributes,
+}
+
 #[derive(Subcommand)]
 enum SubCommand {
     /// Reads a certificate in the JPKI card.
@@ -89,6 +99,11 @@ enum SubCommand {
         #[clap(arg_enum)]
         ty: SurfaceContentType,
     },
+    /// Reads the text information from the card.
+    Support {
+        #[clap(arg_enum)]
+        ty: SupportContentType,
+    },
 }
 
 #[derive(Parser)]
@@ -105,6 +120,10 @@ struct Cli {
     /// While reading certificates, reads their CA certificate instead.
     #[clap(short, long, action)]
     ca: bool,
+
+    /// Exports pretty-printed JSON instead of minified.
+    #[clap(short, long, action)]
+    pretty: bool,
 }
 
 fn pin_prompt(hint: &'static str) -> Result<Vec<u8>> {
@@ -134,12 +153,18 @@ fn run() -> Result<()> {
     let card = Rc::new(jpki::Card::new(Box::new(nfc_card)));
     let open_jpki_ap = || jpki::ap::JpkiAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
     let open_surface_ap = || jpki::ap::SurfaceAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
+    let open_support_ap = || jpki::ap::SupportAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
 
     let ty = match (cli.auth, cli.ca) {
         (true, true) => CertType::AuthCA,
         (true, _) => CertType::Auth,
         (_, true) => CertType::SignCA,
         _ => CertType::Sign,
+    };
+
+    let to_json = match cli.pretty {
+        true => serde_json::to_string_pretty,
+        _ => serde_json::to_string,
     };
 
     match &cli.command {
@@ -204,6 +229,28 @@ fn run() -> Result<()> {
                     Code => &surface.code,
                 })
                 .map_err(Error::IO)?;
+        }
+        SubCommand::Support { ty } => {
+            use SupportContentType::*;
+
+            let support_ap = open_support_ap()?;
+            let pin = pin_prompt(PIN_HINT_SUPPORT)?;
+
+            match ty {
+                MyNumber => {
+                    println!(
+                        "{}",
+                        support_ap.read_my_number((), pin).map_err(Error::Apdu)?,
+                    );
+                }
+                Attributes => {
+                    println!(
+                        "{}",
+                        to_json(&support_ap.read_attributes((), pin).map_err(Error::Apdu)?)
+                            .map_err(Error::Json)?,
+                    )
+                }
+            }
         }
     }
 

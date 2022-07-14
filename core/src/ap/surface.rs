@@ -2,6 +2,7 @@
 
 use std::rc::Rc;
 
+use crate::ap::open;
 use crate::{nfc, Card};
 
 const DF_NAME: [u8; 10] = [0xD3, 0x92, 0x10, 0x00, 0x31, 0x00, 0x01, 0x01, 0x04, 0x02];
@@ -63,12 +64,7 @@ where
     T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
 {
-    /// Opens the AP in the card by selecting the DF.
-    pub fn open(ctx: Ctx, card: Rc<Card<T, Ctx>>) -> Result<Self, nfc::Error> {
-        let ap = Self { card };
-
-        ap.card.select_df(ctx, DF_NAME.into()).map(|_| ap)
-    }
+    open!(T, Ctx, DF_NAME);
 
     /// Reads the surface information as DER-encoded ASN.1 data.
     pub fn read_surface_raw(&self, ctx: Ctx, pin: Pin) -> Result<Vec<u8>, nfc::Error> {

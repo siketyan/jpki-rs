@@ -20,8 +20,9 @@ apdu = "0.2"
 clap = { version = "3.1", features = ["derive"] }
 dialoguer = "0.10"
 hex = "0.4"
-jpki = { version = "=0.2.2", path = "../core", features = ["digest"] }
+jpki = { version = "=0.2.2", path = "../core", features = ["digest", "serde"] }
 pcsc = "2.7"
+serde_json = "1.0"
 thiserror = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
