@@ -1,5 +1,7 @@
 //! DER / ASN.1 support for JPKI functions.
 
+use std::borrow::Cow;
+
 /// Stateful, simple and customised DER / ASN.1 reader for JPKI.
 pub struct Reader<'a> {
     buffer: &'a [u8],
@@ -59,11 +61,21 @@ impl<'a> Reader<'a> {
     }
 
     /// Reads the data at the current position automatically, seeking the cursor.
-    /// Short version of `self.read(self.read_size())`.
+    /// Short version of `self.read(self.read_length())`.
     pub fn read_auto(&mut self) -> &'a [u8] {
         let length = self.read_length();
 
         self.read(length)
+    }
+
+    /// Read a `Cow<'a, str>' at the current position, seeking the cursor.
+    pub fn read_str(&mut self) -> Cow<'a, str> {
+        String::from_utf8_lossy(self.read_auto())
+    }
+
+    /// Read a `String` at the current position, seeking the cursor.
+    pub fn read_string(&mut self) -> String {
+        self.read_str().to_string()
     }
 
     /// Runs the closure in the sequence at the current position, seeking the cursor.
