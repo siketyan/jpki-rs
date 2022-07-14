@@ -19,6 +19,37 @@ pub enum Pin {
     B(Vec<u8>),
 }
 
+#[derive(Debug, Default)]
+pub struct Surface {
+    _header: Vec<u8>,
+    pub date_of_birth: Vec<u8>,
+    pub sex: Vec<u8>,
+    pub public_key: Vec<u8>,
+    pub name: Vec<u8>,
+    pub address: Vec<u8>,
+    pub photo: Vec<u8>,
+    pub signature: Vec<u8>,
+    pub expiry_date: Vec<u8>,
+    pub code: Vec<u8>,
+}
+
+impl<'a> From<&'a [u8]> for Surface {
+    fn from(buf: &'a [u8]) -> Self {
+        crate::der::Reader::new(buf).in_sequence(|reader| Self {
+            _header: Vec::from(reader.read_auto()),
+            date_of_birth: Vec::from(reader.read_auto()),
+            sex: Vec::from(reader.read_auto()),
+            public_key: Vec::from(reader.read_auto()),
+            name: Vec::from(reader.read_auto()),
+            address: Vec::from(reader.read_auto()),
+            photo: Vec::from(reader.read_auto()),
+            signature: Vec::from(reader.read_auto()),
+            expiry_date: Vec::from(reader.read_auto()),
+            code: Vec::from(reader.read_auto()),
+        })
+    }
+}
+
 pub struct SurfaceAp<T, Ctx>
 where
     T: nfc::HandlerInCtx<Ctx>,
@@ -40,7 +71,7 @@ where
     }
 
     /// Reads the surface information as DER-encoded ASN.1 data.
-    pub fn read_surface(&self, ctx: Ctx, pin: Pin) -> Result<Vec<u8>, nfc::Error> {
+    pub fn read_surface_raw(&self, ctx: Ctx, pin: Pin) -> Result<Vec<u8>, nfc::Error> {
         match pin {
             Pin::A(pin) => self.verify_pin_a(ctx, pin),
             Pin::B(pin) => self.verify_pin_b(ctx, pin),
@@ -48,6 +79,12 @@ where
         .and_then(|_| self.card.select_ef(ctx, EF_ID.into()))
         .and_then(|_| self.card.read_der_size(ctx))
         .and_then(|size| self.card.read(ctx, Some(size)))
+    }
+
+    /// Reads the surface information as decoded data.
+    pub fn read_surface(&self, ctx: Ctx, pin: Pin) -> Result<Surface, nfc::Error> {
+        self.read_surface_raw(ctx, pin)
+            .map(|info| Surface::from(info.as_slice()))
     }
 
     fn verify_pin_a(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), nfc::Error> {

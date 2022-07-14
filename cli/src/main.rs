@@ -52,37 +52,6 @@ impl<'a> HandlerInCtx<Ctx> for NfcCard<'a> {
     }
 }
 
-#[derive(Debug, Default)]
-struct Surface {
-    _header: Vec<u8>,
-    date_of_birth: Vec<u8>,
-    sex: Vec<u8>,
-    public_key: Vec<u8>,
-    name: Vec<u8>,
-    address: Vec<u8>,
-    photo: Vec<u8>,
-    signature: Vec<u8>,
-    expiry_date: Vec<u8>,
-    code: Vec<u8>,
-}
-
-impl<'a> From<&'a [u8]> for Surface {
-    fn from(buf: &'a [u8]) -> Self {
-        jpki::der::Reader::new(buf).in_sequence(|reader| Self {
-            _header: Vec::from(reader.read_auto()),
-            date_of_birth: Vec::from(reader.read_auto()),
-            sex: Vec::from(reader.read_auto()),
-            public_key: Vec::from(reader.read_auto()),
-            name: Vec::from(reader.read_auto()),
-            address: Vec::from(reader.read_auto()),
-            photo: Vec::from(reader.read_auto()),
-            signature: Vec::from(reader.read_auto()),
-            expiry_date: Vec::from(reader.read_auto()),
-            code: Vec::from(reader.read_auto()),
-        })
-    }
-}
-
 #[derive(Clone, clap::ArgEnum)]
 enum SurfaceContentType {
     DateOfBirth,
@@ -220,8 +189,7 @@ fn run() -> Result<()> {
                 _ => Pin::B(pin_prompt(PIN_HINT_SURFACE)?),
             };
 
-            let info = surface_ap.read_surface((), pin).map_err(Error::Apdu)?;
-            let surface = Surface::from(info.as_slice());
+            let surface = surface_ap.read_surface((), pin).map_err(Error::Apdu)?;
 
             stdout()
                 .write_all(match ty {
