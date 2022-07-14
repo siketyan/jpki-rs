@@ -62,3 +62,15 @@ For list of available data to dump, see the help:
 ```shell
 jpki-cli surface --help
 ```
+
+### Support AP
+Reads the "My Number" from the card:
+```shell
+jpki-cli support my-number
+```
+
+Reads text attributes from the card as JSON:
+```shell
+jpki-cli support attributes --pretty
+jpki-cli support attributes | jq # The output is JSON, so you can query it w/ jq
+```
