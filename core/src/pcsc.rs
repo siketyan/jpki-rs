@@ -14,7 +14,7 @@
 //! <https://github.com/bluetech/pcsc-rust>
 //!
 //! ## Usage
-//! ```rust
+//! ```rust,no_run
 //! use std::rc::Rc;
 //!
 //! use jpki::Card;
