@@ -70,23 +70,26 @@ jobs:
           - armv7-linux-androideabi
         features:
           - '--no-default-features'
-          - '--all-features'
+          - '--features digest,tracing'
         include:
           - target: x86_64-pc-windows-msvc
             host: windows-2022
             artifact: jpki-cli.exe
             cli: true
             android: false
+            additionalFeatures: '--features pcsc'
           - target: x86_64-apple-darwin
             host: macos-12
             artifact: jpki-cli
             cli: true
             android: false
+            additionalFeatures: '--features pcsc'
           - target: aarch64-apple-darwin
             host: macos-12
             artifact: jpki-cli
             cli: true
             android: false
+            additionalFeatures: '--features pcsc'
           - target: x86_64-unknown-linux-gnu
             host: ubuntu-22.04
             artifact: jpki-cli
@@ -142,7 +145,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --verbose --release --target=${{ matrix.target }} ${{ matrix.features }} -p jpki
+          args: --verbose --release --target=${{ matrix.target }} ${{ matrix.features }} ${{ matrix.additionalFeatures }} -p jpki
 
       - name: Build (CLI)
         if: ${{ matrix.cli }}
