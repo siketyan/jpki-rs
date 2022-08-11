@@ -7,7 +7,7 @@ homepage = "https://github.com/siketyan/jpki-rs"
 repository = "https://github.com/siketyan/jpki-rs.git"
 authors = [
     # Thank you for your contribution!
-    # While contributing to this project, feed free to add your name here :)
+    # While contributing to this project, feel free to add your name here :)
     "Naoki Ikeguchi <me@s6n.jp>",
 ]
 readme = "../README.md"
