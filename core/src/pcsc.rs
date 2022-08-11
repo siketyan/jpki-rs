@@ -1,10 +1,55 @@
+//! PC/SC support for jpki library.
+//! Can be enabled by turning `pcsc` feature on.
+//!
+//! ## What is PC/SC?
+//! PC/SC (Personal Computer/Smart Card) is an abstraction layer for communicating with Smart Cards
+//! from Windows. Using this layer, applications can connect to any devices that supports PC/SC,
+//! without depending on their driver implementation. Windows and macOS supports PC/SC by themselves,
+//! Linux also supports by installing pcsc-lite shared library.
+//!
+//! ## Supported platform
+//! Platforms that supports PC/SC are limited because they are subjected to use devices on PCs.
+//! Linux, Windows and macOS are supported by pcsc-rust, backend of this implementation.
+//! Refer the documentation of pcsc-rust for details:
+//! <https://github.com/bluetech/pcsc-rust>
+//!
+//! ## Usage
+//! ```rust,no_run
+//! use std::rc::Rc;
+//!
+//! use jpki::Card;
+//! use jpki::ap::JpkiAp;
+//! use jpki::pcsc::Context;
+//!
+//! let ctx = Context::try_new().unwrap();
+//! let device = ctx.open().unwrap();
+//! let pcsc_card = device.connect(ctx).unwrap();
+//!
+//! let card = Rc::new(Card::new(Box::new(pcsc_card)));
+//! let jpki_ap = JpkiAp::open((), Rc::clone(&card)).unwrap();
+//! ```
+
 use std::ffi::{CStr, CString};
 use std::marker::PhantomData;
 use std::thread::sleep;
 use std::time::Duration;
 
 use pcsc::{Card, Protocols, Scope, ShareMode, MAX_BUFFER_SIZE};
+
+#[cfg(feature = "tracing")]
 use tracing::{debug, info};
+
+use crate::nfc::{Command, HandlerInCtx, Response};
+
+#[cfg(not(feature = "tracing"))]
+macro_rules! debug {
+    ($($t: tt)*) => {};
+}
+
+#[cfg(not(feature = "tracing"))]
+macro_rules! info {
+    ($($t: tt)*) => {};
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -17,12 +62,14 @@ pub enum Error {
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
+/// PC/SC context.
 pub struct Context<'a> {
     ctx: pcsc::Context,
     _lifetime: PhantomData<&'a ()>,
 }
 
 impl<'a> Context<'a> {
+    /// Creates a PC/SC context in user scope.
     pub fn try_new() -> Result<Self> {
         Ok(Self {
             ctx: pcsc::Context::establish(Scope::User).map_err(Error::PcscError)?,
@@ -30,6 +77,7 @@ impl<'a> Context<'a> {
         })
     }
 
+    /// Finds a PC/SC device, then opens a connection to them.
     pub fn open<'b>(&self) -> Result<Device<'b>> {
         let mut buf = [0u8; 2048];
 
@@ -43,6 +91,7 @@ impl<'a> Context<'a> {
     }
 }
 
+/// PC/SC device handle.
 pub struct Device<'a> {
     reader: Box<CString>,
     _lifetime: PhantomData<&'a ()>,
@@ -58,7 +107,8 @@ impl<'a> Device<'a> {
         }
     }
 
-    pub fn connect(&self, ctx: Context) -> Result<Target<'a>> {
+    /// Connects to the card inserted to the device after waiting them.
+    pub fn connect(&self, ctx: Context) -> Result<PcscCard<'a>> {
         // Waits for touching card, polling for each seconds.
         debug!("Waiting for a card");
 
@@ -70,7 +120,7 @@ impl<'a> Device<'a> {
                 Ok(card) => {
                     debug!("Connected to your card");
 
-                    return Ok(Target::new(card));
+                    return Ok(PcscCard::new(card));
                 }
                 Err(e) => match e {
                     pcsc::Error::NoSmartcard => {
@@ -86,12 +136,13 @@ impl<'a> Device<'a> {
     }
 }
 
-pub struct Target<'a> {
+/// A card to be communicated through PC/SC.
+pub struct PcscCard<'a> {
     card: Card,
     _lifetime: PhantomData<&'a ()>,
 }
 
-impl<'a> Target<'a> {
+impl<'a> PcscCard<'a> {
     fn new(card: Card) -> Self {
         Self {
             card,
@@ -99,6 +150,7 @@ impl<'a> Target<'a> {
         }
     }
 
+    /// Transmits an APDU command to the card, then receives a response from them.
     pub fn transmit(&self, tx: &[u8]) -> Result<Vec<u8>> {
         debug!("TX: {}", hex::encode(tx));
 
@@ -108,5 +160,16 @@ impl<'a> Target<'a> {
         debug!("RX: {}", hex::encode(rx));
 
         Ok(Vec::from(rx))
+    }
+}
+
+type Ctx = ();
+
+impl<'a> HandlerInCtx<Ctx> for PcscCard<'a> {
+    fn handle_in_ctx(&self, _: Ctx, command: Command) -> Response {
+        let tx = Vec::from(command);
+        let rx = self.transmit(&tx).unwrap();
+
+        rx.into()
     }
 }

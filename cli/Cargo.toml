@@ -7,7 +7,7 @@ homepage = "https://github.com/siketyan/jpki-rs"
 repository = "https://github.com/siketyan/jpki-rs.git"
 authors = [
     # Thank you for your contribution!
-    # While contributing to this project, feed free to add your name here :)
+    # While contributing to this project, feel free to add your name here :)
     "Naoki Ikeguchi <me@s6n.jp>",
 ]
 readme = "README.md"
@@ -20,7 +20,7 @@ apdu = "0.2"
 clap = { version = "3.1", features = ["derive"] }
 dialoguer = "0.10"
 hex = "0.4"
-jpki = { version = "=0.3.0", path = "../core", features = ["digest", "serde"] }
+jpki = { version = "=0.3.0", path = "../core", features = ["digest", "pcsc", "serde"] }
 pcsc = "2.7"
 serde_json = "1.0"
 thiserror = "1.0"

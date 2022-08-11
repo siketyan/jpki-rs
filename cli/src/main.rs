@@ -1,7 +1,5 @@
 extern crate core;
 
-mod nfc;
-
 use std::fs::File;
 use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::PathBuf;
@@ -12,12 +10,10 @@ use clap::{Parser, Subcommand};
 use dialoguer::Password;
 use jpki::ap::jpki::CertType;
 use jpki::ap::surface::Pin;
-use jpki::nfc::{Command, HandlerInCtx, Response};
+use jpki::pcsc::Context;
 use tracing::metadata::LevelFilter;
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
-
-use crate::nfc::{Context, Target};
 
 const PIN_HINT_USER_AUTHENTICATION: &str = "PIN for user authentication (4 digits)";
 const PIN_HINT_DIGITAL_SIGNATURE: &str = "PIN for digital signature (max. 16 characters)";
@@ -31,7 +27,7 @@ enum Error {
     IO(#[from] std::io::Error),
 
     #[error("Error occurred on communicating with NFC device: {0}")]
-    Nfc(#[from] nfc::Error),
+    Pcsc(#[from] jpki::pcsc::Error),
 
     #[error("The card returned an error: {0}")]
     Apdu(#[from] jpki::nfc::Error),
@@ -41,20 +37,6 @@ enum Error {
 }
 
 type Result<T> = std::result::Result<T, Error>;
-
-type Ctx = ();
-struct NfcCard<'a> {
-    target: Target<'a>,
-}
-
-impl<'a> HandlerInCtx<Ctx> for NfcCard<'a> {
-    fn handle_in_ctx(&self, _: Ctx, command: Command) -> Response {
-        let tx = Vec::from(command);
-        let rx = self.target.transmit(&tx).unwrap();
-
-        rx.into()
-    }
-}
 
 #[derive(Clone, clap::ArgEnum)]
 enum SurfaceContentType {
@@ -145,12 +127,11 @@ fn read_all<R: Read>(mut r: R) -> Result<Vec<u8>> {
 fn run() -> Result<()> {
     let cli: Cli = Cli::parse();
 
-    let ctx = Context::try_new().map_err(Error::Nfc)?;
-    let device = ctx.open().map_err(Error::Nfc)?;
-    let target = device.connect(ctx).map_err(Error::Nfc)?;
+    let ctx = Context::try_new().map_err(Error::Pcsc)?;
+    let device = ctx.open().map_err(Error::Pcsc)?;
+    let pcsc_card = device.connect(ctx).map_err(Error::Pcsc)?;
 
-    let nfc_card = NfcCard { target };
-    let card = Rc::new(jpki::Card::new(Box::new(nfc_card)));
+    let card = Rc::new(jpki::Card::new(Box::new(pcsc_card)));
     let open_jpki_ap = || jpki::ap::JpkiAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
     let open_surface_ap = || jpki::ap::SurfaceAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
     let open_support_ap = || jpki::ap::SupportAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
