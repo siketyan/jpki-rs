@@ -308,8 +308,12 @@ name = "jpki"
 version = "0.3.0"
 dependencies = [
  "apdu",
+ "hex",
+ "pcsc",
  "ring 0.17.0-alpha.11",
  "serde",
+ "thiserror",
+ "tracing",
  "x509-certificate",
  "yasna",
 ]
