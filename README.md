@@ -25,6 +25,8 @@ jpki = "0.3"
 
 ## ✨ Features
 - **digest**: Utility for calculating digests to sign or verify the data (non-default).
+- **pcsc**: PC/SC support for communicating with your cards (non-default).
+- **tracing**: Logging feature on tracing ecosystem (non-default).
 
 ## 💚 Example
 See [jpki-cli](./cli) for an example usage of this crate.
