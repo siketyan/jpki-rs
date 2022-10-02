@@ -15,7 +15,7 @@ pub use card::Card;
 
 use std::rc::Rc;
 
-use ap::JpkiAp;
+use ap::CryptoAp;
 
 /// High-level API to operate with authentication certificate and the key-pair
 pub struct ClientForAuth<T, Ctx>
@@ -24,7 +24,7 @@ where
     Ctx: Copy,
 {
     #[allow(dead_code)]
-    jpki_ap: Box<JpkiAp<T, Ctx>>,
+    jpki_ap: Box<CryptoAp<T, Ctx>>,
 }
 
 impl<T, Ctx> ClientForAuth<T, Ctx>
@@ -35,7 +35,7 @@ where
     /// Initiates a client with the delegate.
     pub fn create(ctx: Ctx, delegate: Box<T>) -> Result<Self, nfc::Error> {
         Ok(Self {
-            jpki_ap: Box::new(JpkiAp::open(ctx, Rc::new(Card::new(delegate)))?),
+            jpki_ap: Box::new(CryptoAp::open(ctx, Rc::new(Card::new(delegate)))?),
         })
     }
 
@@ -53,7 +53,7 @@ where
         message: Vec<u8>,
         signature: Vec<u8>,
     ) -> Result<bool, nfc::Error> {
-        use ap::jpki::CertType;
+        use ap::crypto::CertType;
 
         Ok(digest::verify(
             self.jpki_ap.read_certificate(ctx, CertType::Auth, vec![])?,

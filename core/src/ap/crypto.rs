@@ -1,4 +1,4 @@
-//! JPKI AP
+//! Crypto AP (formerly JPKI AP)
 
 use std::rc::Rc;
 
@@ -46,7 +46,7 @@ impl CertType {
 }
 
 /// An AP to sign or verify messages using a key-pair issued by JPKI
-pub struct JpkiAp<T, Ctx>
+pub struct CryptoAp<T, Ctx>
 where
     T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,
@@ -54,7 +54,7 @@ where
     card: Rc<Card<T, Ctx>>,
 }
 
-impl<T, Ctx> JpkiAp<T, Ctx>
+impl<T, Ctx> CryptoAp<T, Ctx>
 where
     T: nfc::HandlerInCtx<Ctx>,
     Ctx: Copy,

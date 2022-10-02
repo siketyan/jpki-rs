@@ -18,7 +18,7 @@
 //! use std::rc::Rc;
 //!
 //! use jpki::Card;
-//! use jpki::ap::JpkiAp;
+//! use jpki::ap::CryptoAp;
 //! use jpki::pcsc::Context;
 //!
 //! let ctx = Context::try_new().unwrap();
@@ -26,7 +26,7 @@
 //! let pcsc_card = device.connect(ctx).unwrap();
 //!
 //! let card = Rc::new(Card::new(Box::new(pcsc_card)));
-//! let jpki_ap = JpkiAp::open((), Rc::clone(&card)).unwrap();
+//! let jpki_ap = CryptoAp::open((), Rc::clone(&card)).unwrap();
 //! ```
 
 use std::ffi::{CStr, CString};
