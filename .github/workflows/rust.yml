@@ -272,3 +272,9 @@ jobs:
             echo "Still waiting..."
             sleep 5
           done
+
+      - name: Publish to crates.io (FFI/Generic)
+        uses: actions-rs/cargo@v1
+        with:
+          command: publish
+          args: --verbose --allow-dirty -p jpki-ffi-generic
