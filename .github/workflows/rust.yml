@@ -146,9 +146,12 @@ jobs:
           override: true
           target: ${{ matrix.target }}
 
+      - id: cache-key
+        run: echo "::set-output name=key::$(echo '${{ toJSON(matrix) }}' | shasum -a 256)"
+
       - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
         with:
-          key: ${{ matrix.features }}
+          key: ${{ steps.cache-key.outputs.key }}
 
       - name: Install libpcsclite
         if: ${{ matrix.cli && startsWith(matrix.host, 'ubuntu-') }}
