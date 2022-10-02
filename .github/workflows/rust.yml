@@ -238,6 +238,10 @@ jobs:
     needs:
       - build
     steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
       - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
