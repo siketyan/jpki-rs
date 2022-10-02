@@ -12,6 +12,7 @@ authors = [
 ]
 readme = "../../README.md"
 edition = "2021"
+include = ["src", "bindings.h"]
 
 [lib]
 name = "jpki"
