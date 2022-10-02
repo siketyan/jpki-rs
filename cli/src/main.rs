@@ -38,7 +38,7 @@ enum Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Clone, clap::ArgEnum)]
+#[derive(Clone, clap::ValueEnum)]
 enum SurfaceContentType {
     DateOfBirth,
     Sex,
@@ -51,7 +51,7 @@ enum SurfaceContentType {
     Code,
 }
 
-#[derive(Clone, clap::ArgEnum)]
+#[derive(Clone, clap::ValueEnum)]
 enum SupportContentType {
     MyNumber,
     Attributes,
@@ -78,12 +78,12 @@ enum SubCommand {
     /// Either PIN type A (Your my number, 12 digits), or type B (DoB 'YYMMDD' + Expiry 'YYYY' + CVC 'XXXX')
     /// alternatively (some information unavailable), is required.
     Surface {
-        #[clap(arg_enum)]
+        #[clap(value_enum)]
         ty: SurfaceContentType,
     },
     /// Reads the text information from the card.
     Support {
-        #[clap(arg_enum)]
+        #[clap(value_enum)]
         ty: SupportContentType,
     },
 }

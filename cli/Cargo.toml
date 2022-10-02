@@ -17,7 +17,7 @@ edition = "2021"
 
 [dependencies]
 apdu = "0.2"
-clap = { version = "3.1", features = ["derive"] }
+clap = { version = "4.0", features = ["derive"] }
 dialoguer = "0.10"
 hex = "0.4"
 jpki = { version = "=0.3.0", path = "../core", features = ["digest", "pcsc", "serde"] }
