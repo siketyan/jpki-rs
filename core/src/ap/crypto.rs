@@ -92,6 +92,16 @@ where
             .and_then(|_| self.card.sign(ctx, digest))
     }
 
+    /// Gets the status of PIN for user authentication.
+    pub fn auth_pin_status(&self, ctx: Ctx) -> Result<u8, nfc::Error> {
+        self.card.pin_status(ctx, EF_AUTH_PIN)
+    }
+
+    /// Gets the status of PIN for signing.
+    pub fn sign_pin_status(&self, ctx: Ctx) -> Result<u8, nfc::Error> {
+        self.card.pin_status(ctx, EF_SIGN_PIN)
+    }
+
     fn verify_auth_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), nfc::Error> {
         self.card.verify_pin(ctx, EF_AUTH_PIN, pin)
     }

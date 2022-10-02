@@ -52,20 +52,33 @@ enum SurfaceContentType {
 }
 
 #[derive(Clone, clap::ArgEnum)]
+enum SurfacePinType {
+    /// My Number (12 digits).
+    /// Information from both front and back is available.
+    A,
+
+    /// DoB in 'YYYYMMDD' format + Expiry date in 'YYYY' format + PIN (4 digits).
+    /// Information from only front is available.
+    B,
+}
+
+#[derive(Clone, clap::ArgEnum)]
 enum SupportContentType {
     MyNumber,
     Attributes,
 }
 
 #[derive(Subcommand)]
-enum SubCommand {
+enum CryptoApAction {
     /// Reads a certificate in the JPKI card.
     ReadCertificate,
+
     /// Writes a signature of the document.
     Sign {
         /// Path to write the signature.
         signature_path: PathBuf,
     },
+
     /// Verifies the signed digest.
     Verify {
         /// Path to the certificate to verify as.
@@ -74,17 +87,70 @@ enum SubCommand {
         /// Path to signature to verify for.
         signature_path: PathBuf,
     },
+
+    /// Gets the status of PIN.
+    Stat,
+}
+
+#[derive(Subcommand)]
+enum SurfaceApAction {
     /// Reads the surface information from the card.
     /// Either PIN type A (Your my number, 12 digits), or type B (DoB 'YYMMDD' + Expiry 'YYYY' + CVC 'XXXX')
     /// alternatively (some information unavailable), is required.
-    Surface {
+    Get {
         #[clap(arg_enum)]
         ty: SurfaceContentType,
     },
+
+    /// Gets the status of PIN.
+    Stat {
+        #[clap(arg_enum)]
+        ty: SurfacePinType,
+    },
+}
+
+#[derive(Subcommand)]
+enum SupportApAction {
     /// Reads the text information from the card.
-    Support {
+    Get {
         #[clap(arg_enum)]
         ty: SupportContentType,
+
+        /// Exports pretty-printed JSON instead of minified.
+        #[clap(short, long, action)]
+        pretty: bool,
+    },
+
+    /// Gets the status of PIN.
+    Stat,
+}
+
+#[derive(Subcommand)]
+enum SubCommand {
+    /// Read certificates, sign or verify documents.
+    Crypto {
+        #[clap(subcommand)]
+        action: CryptoApAction,
+
+        /// Uses the key-pair for user authentication, instead of for digital signature.
+        #[clap(short, long, action)]
+        auth: bool,
+
+        /// While reading certificates, reads their CA certificate instead.
+        #[clap(short, long, action)]
+        ca: bool,
+    },
+
+    /// Reads the surface information from the card.
+    Surface {
+        #[clap(subcommand)]
+        action: SurfaceApAction,
+    },
+
+    /// Reads the text information from the card.
+    Support {
+        #[clap(subcommand)]
+        action: SupportApAction,
     },
 }
 
@@ -94,18 +160,6 @@ enum SubCommand {
 struct Cli {
     #[clap(subcommand)]
     command: SubCommand,
-
-    /// Uses the key-pair for user authentication, instead of for digital signature.
-    #[clap(short, long, action)]
-    auth: bool,
-
-    /// While reading certificates, reads their CA certificate instead.
-    #[clap(short, long, action)]
-    ca: bool,
-
-    /// Exports pretty-printed JSON instead of minified.
-    #[clap(short, long, action)]
-    pretty: bool,
 }
 
 fn pin_prompt(hint: &'static str) -> Result<Vec<u8>> {
@@ -127,78 +181,92 @@ fn read_all<R: Read>(mut r: R) -> Result<Vec<u8>> {
 fn run() -> Result<()> {
     let cli: Cli = Cli::parse();
 
-    let ctx = Context::try_new().map_err(Error::Pcsc)?;
-    let device = ctx.open().map_err(Error::Pcsc)?;
-    let pcsc_card = device.connect(ctx).map_err(Error::Pcsc)?;
+    let ctx = Context::try_new()?;
+    let device = ctx.open()?;
+    let pcsc_card = device.connect(ctx)?;
 
     let card = Rc::new(jpki::Card::new(Box::new(pcsc_card)));
-    let open_jpki_ap = || jpki::ap::CryptoAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
-    let open_surface_ap = || jpki::ap::SurfaceAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
-    let open_support_ap = || jpki::ap::SupportAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
+    let open_crypto_ap = || jpki::ap::CryptoAp::open((), Rc::clone(&card));
+    let open_surface_ap = || jpki::ap::SurfaceAp::open((), Rc::clone(&card));
+    let open_support_ap = || jpki::ap::SupportAp::open((), Rc::clone(&card));
 
-    let ty = match (cli.auth, cli.ca) {
-        (true, true) => CertType::AuthCA,
-        (true, _) => CertType::Auth,
-        (_, true) => CertType::SignCA,
-        _ => CertType::Sign,
-    };
-
-    let to_json = match cli.pretty {
+    let to_json = |pretty: bool| match pretty {
         true => serde_json::to_string_pretty,
         _ => serde_json::to_string,
     };
 
     match &cli.command {
-        SubCommand::ReadCertificate => {
-            let jpki_ap = open_jpki_ap()?;
-            let pin = if ty.is_pin_required() {
-                pin_prompt(PIN_HINT_DIGITAL_SIGNATURE)?
-            } else {
-                vec![]
+        SubCommand::Crypto { action, auth, ca } => {
+            let ty = match (auth, ca) {
+                (true, true) => CertType::AuthCA,
+                (true, _) => CertType::Auth,
+                (_, true) => CertType::SignCA,
+                _ => CertType::Sign,
             };
 
-            let certificate = jpki_ap.read_certificate((), ty, pin).map_err(Error::Apdu)?;
+            match action {
+                CryptoApAction::ReadCertificate => {
+                    let crypto_ap = open_crypto_ap()?;
+                    let pin = if ty.is_pin_required() {
+                        pin_prompt(PIN_HINT_DIGITAL_SIGNATURE)?
+                    } else {
+                        vec![]
+                    };
 
-            stdout().write_all(&certificate).map_err(Error::IO)?;
-        }
-        SubCommand::Sign { signature_path } => {
-            let jpki_ap = open_jpki_ap()?;
-            let digest = jpki::digest::calculate(read_all(stdin())?);
-            let signature = match cli.auth {
-                true => jpki_ap.auth((), pin_prompt(PIN_HINT_USER_AUTHENTICATION)?, digest),
-                _ => jpki_ap.sign((), pin_prompt(PIN_HINT_DIGITAL_SIGNATURE)?, digest),
-            }?;
+                    let certificate = crypto_ap.read_certificate((), ty, pin)?;
+                    stdout().write_all(&certificate)?;
+                }
+                CryptoApAction::Sign { signature_path } => {
+                    let crypto_ap = open_crypto_ap()?;
+                    let digest = jpki::digest::calculate(read_all(stdin())?);
+                    let signature = match auth {
+                        true => {
+                            crypto_ap.auth((), pin_prompt(PIN_HINT_USER_AUTHENTICATION)?, digest)
+                        }
+                        _ => crypto_ap.sign((), pin_prompt(PIN_HINT_DIGITAL_SIGNATURE)?, digest),
+                    }?;
 
-            let mut signature_file = File::create(signature_path).map_err(Error::IO)?;
-            signature_file.write_all(&signature)?;
-        }
-        SubCommand::Verify {
-            certificate_path,
-            signature_path,
-        } => {
-            let certificate = read_all(File::open(certificate_path).map_err(Error::IO)?)?;
-            let signature = read_all(File::open(signature_path).map_err(Error::IO)?)?;
-            if jpki::digest::verify(certificate, read_all(stdin())?, signature) {
-                info!("OK")
-            } else {
-                error!("NG");
-                exit(1);
+                    let mut signature_file = File::create(signature_path)?;
+                    signature_file.write_all(&signature)?;
+                }
+                CryptoApAction::Verify {
+                    certificate_path,
+                    signature_path,
+                } => {
+                    let certificate = read_all(File::open(certificate_path)?)?;
+                    let signature = read_all(File::open(signature_path)?)?;
+                    if jpki::digest::verify(certificate, read_all(stdin())?, signature) {
+                        info!("OK")
+                    } else {
+                        error!("NG");
+                        exit(1);
+                    }
+                }
+                CryptoApAction::Stat => {
+                    let crypto_ap = open_crypto_ap()?;
+                    let count = match auth {
+                        true => crypto_ap.auth_pin_status(()),
+                        _ => crypto_ap.sign_pin_status(()),
+                    }?;
+
+                    println!("{}", count);
+                }
             }
         }
-        SubCommand::Surface { ty } => {
-            use SurfaceContentType::*;
+        SubCommand::Surface { action } => match action {
+            SurfaceApAction::Get { ty } => {
+                use SurfaceContentType::*;
 
-            let surface_ap = open_surface_ap()?;
-            let pin = pin_prompt(PIN_HINT_SURFACE)?;
-            let pin = match pin.len() {
-                12 => Pin::A(pin_prompt(PIN_HINT_SURFACE)?),
-                _ => Pin::B(pin_prompt(PIN_HINT_SURFACE)?),
-            };
+                let surface_ap = open_surface_ap()?;
+                let pin = pin_prompt(PIN_HINT_SURFACE)?;
+                let pin = match pin.len() {
+                    12 => Pin::A(pin_prompt(PIN_HINT_SURFACE)?),
+                    _ => Pin::B(pin_prompt(PIN_HINT_SURFACE)?),
+                };
 
-            let surface = surface_ap.read_surface((), pin).map_err(Error::Apdu)?;
+                let surface = surface_ap.read_surface((), pin)?;
 
-            stdout()
-                .write_all(match ty {
+                stdout().write_all(match ty {
                     DateOfBirth => &surface.date_of_birth,
                     Sex => &surface.sex,
                     PublicKey => &surface.public_key,
@@ -208,31 +276,46 @@ fn run() -> Result<()> {
                     Signature => &surface.signature,
                     ExpiryDate => &surface.expiry_date,
                     Code => &surface.code,
-                })
-                .map_err(Error::IO)?;
-        }
-        SubCommand::Support { ty } => {
-            use SupportContentType::*;
+                })?;
+            }
+            SurfaceApAction::Stat { ty } => {
+                use SurfacePinType::*;
 
-            let support_ap = open_support_ap()?;
-            let pin = pin_prompt(PIN_HINT_SUPPORT)?;
+                let surface_ap = open_surface_ap()?;
+                let status = match ty {
+                    A => surface_ap.pin_a_status(()),
+                    B => surface_ap.pin_b_status(()),
+                }?;
 
-            match ty {
-                MyNumber => {
-                    println!(
-                        "{}",
-                        support_ap.read_my_number((), pin).map_err(Error::Apdu)?,
-                    );
-                }
-                Attributes => {
-                    println!(
-                        "{}",
-                        to_json(&support_ap.read_attributes((), pin).map_err(Error::Apdu)?)
-                            .map_err(Error::Json)?,
-                    )
+                println!("{}", status);
+            }
+        },
+        SubCommand::Support { action } => match action {
+            SupportApAction::Get { ty, pretty } => {
+                use SupportContentType::*;
+
+                let support_ap = open_support_ap()?;
+                let pin = pin_prompt(PIN_HINT_SUPPORT)?;
+
+                match ty {
+                    MyNumber => {
+                        println!("{}", support_ap.read_my_number((), pin)?,);
+                    }
+                    Attributes => {
+                        println!(
+                            "{}",
+                            to_json(*pretty)(&support_ap.read_attributes((), pin)?)?,
+                        )
+                    }
                 }
             }
-        }
+            SupportApAction::Stat => {
+                let support_ap = open_support_ap()?;
+                let count = support_ap.pin_status(())?;
+
+                println!("{}", count)
+            }
+        },
     }
 
     Ok(())
