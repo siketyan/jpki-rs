@@ -20,7 +20,7 @@ Since this crate is fully cross-platform, we are welcome to add a new platform t
 Add to your Cargo.toml as a dependency as follows:
 ```toml
 [dependencies]
-jpki = "0.3"
+jpki = "0.4"
 ```
 
 ## ✨ Features
