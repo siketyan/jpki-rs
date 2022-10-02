@@ -115,7 +115,7 @@ jobs:
           - armv7-linux-androideabi
         features:
           - '--no-default-features'
-          - '--features digest,tracing'
+          - '--features tracing'
         include:
           - target: x86_64-pc-windows-msvc
             host: windows-2022
