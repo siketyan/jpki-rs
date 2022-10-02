@@ -1,0 +1,7 @@
+en:
+  messages:
+    pin_hint:
+      user_authn: PIN for user authentication (4 digits)
+      signing: PIN for digital signature (max. 16 characters)
+      surface: PIN type A (Your my number, 12 digits), or type B (DoB 'YYMMDD' + Expiry 'YYYY' + CVC 'XXXX') alternatively (some information unavailable), for card surface
+      support: PIN for text filling support (4 digits)

@@ -1,0 +1,7 @@
+ja:
+  messages:
+    pin_hint:
+      user_authn: 利用者認証用電子証明書の暗証番号 (数字 4 桁)
+      signing: 署名用電子証明書のパスワード (英数字・最大 16 桁)
+      surface: 券面 AP 用の照合番号 A (マイナンバー・数字 12 桁)，または照合番号 B (生年月日 'YYMMDD' + 有効期限 'YYYY' + CVC 'XXXX'・一部の情報は利用不可)
+      support: 券面事項入力補助用の暗証番号 (数字 4 桁)

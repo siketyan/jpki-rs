@@ -1,5 +1,6 @@
 mod digest;
 
+use std::env;
 use std::fs::File;
 use std::io::{stderr, stdin, stdout, Read, Write};
 use std::path::PathBuf;
@@ -11,15 +12,12 @@ use dialoguer::Password;
 use jpki::ap::crypto::CertType;
 use jpki::ap::surface::Pin;
 use jpki::pcsc::Context;
+use rust_i18n::{i18n, set_locale, t};
 use tracing::metadata::LevelFilter;
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
-const PIN_HINT_USER_AUTHENTICATION: &str = "PIN for user authentication (4 digits)";
-const PIN_HINT_DIGITAL_SIGNATURE: &str = "PIN for digital signature (max. 16 characters)";
-const PIN_HINT_SURFACE: &str =
-    "PIN type A (Your my number, 12 digits), or type B (DoB 'YYMMDD' + Expiry 'YYYY' + CVC 'XXXX') alternatively (some information unavailable), for card surface";
-const PIN_HINT_SUPPORT: &str = "PIN for text filling support (4 digits)";
+i18n!("locales");
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
@@ -162,7 +160,7 @@ struct Cli {
     command: SubCommand,
 }
 
-fn pin_prompt(hint: &'static str) -> Result<Vec<u8>> {
+fn pin_prompt(hint: &str) -> Result<Vec<u8>> {
     Password::new()
         .with_prompt(hint)
         .interact()
@@ -208,7 +206,7 @@ fn run() -> Result<()> {
                 CryptoApAction::ReadCertificate => {
                     let crypto_ap = open_crypto_ap()?;
                     let pin = if ty.is_pin_required() {
-                        pin_prompt(PIN_HINT_DIGITAL_SIGNATURE)?
+                        pin_prompt(&t!("messages.pin_hint.signing"))?
                     } else {
                         vec![]
                     };
@@ -220,10 +218,16 @@ fn run() -> Result<()> {
                     let crypto_ap = open_crypto_ap()?;
                     let digest = digest::calculate(read_all(stdin())?);
                     let signature = match auth {
-                        true => {
-                            crypto_ap.auth((), pin_prompt(PIN_HINT_USER_AUTHENTICATION)?, digest)
-                        }
-                        _ => crypto_ap.sign((), pin_prompt(PIN_HINT_DIGITAL_SIGNATURE)?, digest),
+                        true => crypto_ap.auth(
+                            (),
+                            pin_prompt(&t!("messages.pin_hint.user_authn"))?,
+                            digest,
+                        ),
+                        _ => crypto_ap.sign(
+                            (),
+                            pin_prompt(&t!("messages.pin_hint.signing"))?,
+                            digest,
+                        ),
                     }?;
 
                     let mut signature_file = File::create(signature_path)?;
@@ -258,7 +262,7 @@ fn run() -> Result<()> {
                 use SurfaceContentType::*;
 
                 let surface_ap = open_surface_ap()?;
-                let pin = pin_prompt(PIN_HINT_SURFACE)?;
+                let pin = pin_prompt(t!("messages.pin_hint.surface").as_str())?;
                 let pin = match pin.len() {
                     12 => Pin::A(pin),
                     _ => Pin::B(pin),
@@ -295,7 +299,7 @@ fn run() -> Result<()> {
                 use SupportContentType::*;
 
                 let support_ap = open_support_ap()?;
-                let pin = pin_prompt(PIN_HINT_SUPPORT)?;
+                let pin = pin_prompt(&t!("messages.pin_hint.support"))?;
 
                 match ty {
                     MyNumber => {
@@ -330,6 +334,16 @@ fn main() {
         )
         .with_writer(stderr)
         .init();
+
+    match env::var("LOCALE")
+        .ok()
+        .as_deref()
+        .map(|s| s.split_once('.').map(|s| s.0).unwrap_or(s))
+    {
+        Some("C") => (), // Use default locale
+        Some(l) => set_locale(l),
+        _ => (),
+    };
 
     if let Err(e) = run() {
         error!("{}", e);
