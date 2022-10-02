@@ -260,8 +260,8 @@ fn run() -> Result<()> {
                 let surface_ap = open_surface_ap()?;
                 let pin = pin_prompt(PIN_HINT_SURFACE)?;
                 let pin = match pin.len() {
-                    12 => Pin::A(pin_prompt(PIN_HINT_SURFACE)?),
-                    _ => Pin::B(pin_prompt(PIN_HINT_SURFACE)?),
+                    12 => Pin::A(pin),
+                    _ => Pin::B(pin),
                 };
 
                 let surface = surface_ap.read_surface((), pin)?;
