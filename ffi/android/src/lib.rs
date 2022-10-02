@@ -10,8 +10,8 @@ use jni::objects::{GlobalRef, JByteBuffer, JClass, JObject, JString, JValue};
 use jni::sys::{jboolean, jbyteArray, jlong, jobject, jstring, JNI_TRUE};
 use jni::JNIEnv;
 
-use jpki::ap::jpki::CertType;
-use jpki::ap::JpkiAp;
+use jpki::ap::crypto::CertType;
+use jpki::ap::CryptoAp;
 use jpki::{nfc, Card, ClientForAuth};
 
 const NULL: jobject = 0 as jobject;
@@ -169,7 +169,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newCard(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newJpkiAp(
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newCryptoAp(
     env: JNIEnv,
     _class: JClass,
     delegate: jlong,
@@ -177,17 +177,17 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newJpkiAp(
     wrap!(jlong, {
         let ctx = JniContext { env };
         let card = Rc::from_raw(delegate as *mut Card<JniNfcCard, JniContext>);
-        let ap = JpkiAp::open(ctx, card)?;
+        let ap = CryptoAp::open(ctx, card)?;
 
         Ok(Box::into_raw(Box::new(ap)) as jlong)
     })
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateSign(
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApReadCertificateSign(
     env: JNIEnv,
     _class: JClass,
-    jpki_ap: jlong,
+    crypto_ap: jlong,
     pin: jstring,
     ca: jboolean,
 ) -> jobject {
@@ -199,7 +199,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateS
             _ => CertType::Sign,
         };
 
-        let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
+        let ap = &mut *(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
         let mut certificate = ap.read_certificate(ctx, ty, pin).map_err(Error::Apdu)?;
         let buffer = env
             .new_direct_byte_buffer(&mut certificate)
@@ -210,10 +210,10 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateS
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateAuth(
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApReadCertificateAuth(
     env: JNIEnv,
     _class: JClass,
-    jpki_ap: jlong,
+    crypto_ap: jlong,
     ca: jboolean,
 ) -> jobject {
     wrap!(jobject, {
@@ -224,7 +224,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateA
             _ => CertType::Auth,
         };
 
-        let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
+        let ap = &mut *(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
         let mut certificate = ap.read_certificate(ctx, ty, pin).map_err(Error::Apdu)?;
         let buffer = env
             .new_direct_byte_buffer(&mut certificate)
@@ -235,10 +235,10 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApReadCertificateA
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApAuth(
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApAuth(
     env: JNIEnv,
     _class: JClass,
-    jpki_ap: jlong,
+    crypto_ap: jlong,
     pin: jstring,
     digest: jbyteArray,
 ) -> jobject {
@@ -247,7 +247,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApAuth(
         let pin = jstring_to_bytes_vec(env, pin)?;
         let digest = env.convert_byte_array(digest).map_err(Error::Jni)?;
 
-        let ap = &mut *(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
+        let ap = &mut *(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
         let mut signature = ap.auth(ctx, pin, digest).map_err(Error::Apdu)?;
         let buffer = env
             .new_direct_byte_buffer(&mut signature)
@@ -258,12 +258,12 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApAuth(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_jpkiApClose(
+pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApClose(
     _env: JNIEnv,
     _class: JClass,
-    jpki_ap: jlong,
+    crypto_ap: jlong,
 ) {
-    let _ = Box::from_raw(jpki_ap as *mut JpkiAp<JniNfcCard, JniContext>);
+    let _ = Box::from_raw(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
 }
 
 #[no_mangle]

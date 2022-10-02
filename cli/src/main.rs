@@ -8,7 +8,7 @@ use std::rc::Rc;
 
 use clap::{Parser, Subcommand};
 use dialoguer::Password;
-use jpki::ap::jpki::CertType;
+use jpki::ap::crypto::CertType;
 use jpki::ap::surface::Pin;
 use jpki::pcsc::Context;
 use tracing::metadata::LevelFilter;
@@ -132,7 +132,7 @@ fn run() -> Result<()> {
     let pcsc_card = device.connect(ctx).map_err(Error::Pcsc)?;
 
     let card = Rc::new(jpki::Card::new(Box::new(pcsc_card)));
-    let open_jpki_ap = || jpki::ap::JpkiAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
+    let open_jpki_ap = || jpki::ap::CryptoAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
     let open_surface_ap = || jpki::ap::SurfaceAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
     let open_support_ap = || jpki::ap::SupportAp::open((), Rc::clone(&card)).map_err(Error::Apdu);
 

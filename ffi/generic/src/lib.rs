@@ -1,8 +1,8 @@
 #![feature(vec_into_raw_parts)]
 #![allow(clippy::missing_safety_doc)]
 
-use jpki::ap::jpki::CertType;
-use jpki::ap::JpkiAp;
+use jpki::ap::crypto::CertType;
+use jpki::ap::CryptoAp;
 use jpki::nfc::{Command, HandlerInCtx, Response};
 use jpki::Card;
 use std::ffi::{c_char, CStr, CString};
@@ -143,29 +143,29 @@ pub unsafe extern "C" fn jpki_card_close(card: &mut Card<NfcCard, ()>) {
 
 /// Opens JPKI application on the card.
 #[no_mangle]
-pub unsafe extern "C" fn jpki_new_jpki_ap(
+pub unsafe extern "C" fn jpki_new_crypto_ap(
     card: *mut Card<NfcCard, ()>,
-) -> *mut JpkiAp<NfcCard, ()> {
+) -> *mut CryptoAp<NfcCard, ()> {
     let card = Rc::from_raw(card);
 
     unwrap_or(
-        JpkiAp::open((), card).map(|ap| Box::into_raw(Box::new(ap))),
+        CryptoAp::open((), card).map(|ap| Box::into_raw(Box::new(ap))),
         null_mut(),
     )
 }
 
 /// Closes the opened JPKI application.
 #[no_mangle]
-pub unsafe extern "C" fn jpki_jpki_ap_close(jpki_ap: *mut JpkiAp<NfcCard, ()>) {
-    let _ = Box::from_raw(jpki_ap);
+pub unsafe extern "C" fn jpki_crypto_ap_close(crypto_ap: *mut CryptoAp<NfcCard, ()>) {
+    let _ = Box::from_raw(crypto_ap);
 }
 
 /// Reads a certificate for signing.
 /// PIN is required.
 /// If ca is true, reads a CA certificate instead.
 #[no_mangle]
-pub unsafe extern "C" fn jpki_jpki_ap_read_certificate_sign(
-    jpki_ap: *mut JpkiAp<NfcCard, ()>,
+pub unsafe extern "C" fn jpki_crypto_ap_read_certificate_sign(
+    crypto_ap: *mut CryptoAp<NfcCard, ()>,
     pin: *const c_char,
     ca: bool,
 ) -> ByteArray {
@@ -176,7 +176,7 @@ pub unsafe extern "C" fn jpki_jpki_ap_read_certificate_sign(
     };
 
     unwrap(
-        jpki_ap
+        crypto_ap
             .as_ref()
             .unwrap()
             .read_certificate((), ty, pin)
@@ -187,8 +187,8 @@ pub unsafe extern "C" fn jpki_jpki_ap_read_certificate_sign(
 /// Reads a certificate for user authentication.
 /// If ca is true, reads a CA certificate instead.
 #[no_mangle]
-pub unsafe extern "C" fn jpki_jpki_ap_read_certificate_auth(
-    jpki_ap: *mut JpkiAp<NfcCard, ()>,
+pub unsafe extern "C" fn jpki_crypto_ap_read_certificate_auth(
+    crypto_ap: *mut CryptoAp<NfcCard, ()>,
     ca: bool,
 ) -> ByteArray {
     let ty = match ca {
@@ -197,7 +197,7 @@ pub unsafe extern "C" fn jpki_jpki_ap_read_certificate_auth(
     };
 
     unwrap(
-        jpki_ap
+        crypto_ap
             .as_ref()
             .unwrap()
             .read_certificate((), ty, vec![])
@@ -207,15 +207,15 @@ pub unsafe extern "C" fn jpki_jpki_ap_read_certificate_auth(
 
 /// Sign the computed digest using the key-pair for user authentication.
 #[no_mangle]
-pub unsafe extern "C" fn jpki_jpki_ap_auth(
-    jpki_ap: *mut JpkiAp<NfcCard, ()>,
+pub unsafe extern "C" fn jpki_crypto_ap_auth(
+    crypto_ap: *mut CryptoAp<NfcCard, ()>,
     pin: *const c_char,
     digest: ByteArray,
 ) -> ByteArray {
     let pin = CStr::from_ptr(pin).to_bytes().to_vec();
 
     unwrap(
-        jpki_ap
+        crypto_ap
             .as_ref()
             .unwrap()
             .auth((), pin, digest.into())
@@ -225,15 +225,15 @@ pub unsafe extern "C" fn jpki_jpki_ap_auth(
 
 /// Sign the computed digest using the key-pair for signing.
 #[no_mangle]
-pub unsafe extern "C" fn jpki_jpki_ap_sign(
-    jpki_ap: *mut JpkiAp<NfcCard, ()>,
+pub unsafe extern "C" fn jpki_crypto_ap_sign(
+    crypto_ap: *mut CryptoAp<NfcCard, ()>,
     pin: *const c_char,
     digest: ByteArray,
 ) -> ByteArray {
     let pin = CStr::from_ptr(pin).to_bytes().to_vec();
 
     unwrap(
-        jpki_ap
+        crypto_ap
             .as_ref()
             .unwrap()
             .sign((), pin, digest.into())
