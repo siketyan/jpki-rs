@@ -92,6 +92,11 @@ where
             .map(|attrs| Attributes::from(attrs.as_slice()))
     }
 
+    /// Gets the status of PIN.
+    pub fn pin_status(&self, ctx: Ctx) -> Result<u8, nfc::Error> {
+        self.card.pin_status(ctx, EF_PIN)
+    }
+
     fn verify_pin(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), nfc::Error> {
         self.card.verify_pin(ctx, EF_PIN, pin)
     }

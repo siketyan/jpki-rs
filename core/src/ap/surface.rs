@@ -83,6 +83,16 @@ where
             .map(|info| Surface::from(info.as_slice()))
     }
 
+    /// Gets the status of PIN type A.
+    pub fn pin_a_status(&self, ctx: Ctx) -> Result<u8, nfc::Error> {
+        self.card.pin_status(ctx, EF_PIN_A)
+    }
+
+    /// Gets the status of PIN type B.
+    pub fn pin_b_status(&self, ctx: Ctx) -> Result<u8, nfc::Error> {
+        self.card.pin_status(ctx, EF_PIN_B)
+    }
+
     fn verify_pin_a(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), nfc::Error> {
         self.card.verify_pin(ctx, EF_PIN_A, pin)
     }
