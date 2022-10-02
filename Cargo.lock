@@ -401,12 +401,9 @@ dependencies = [
  "apdu",
  "hex",
  "pcsc",
- "ring 0.17.0-alpha.11",
  "serde",
  "thiserror",
  "tracing",
- "x509-certificate",
- "yasna",
 ]
 
 [[package]]
@@ -419,10 +416,13 @@ dependencies = [
  "hex",
  "jpki",
  "pcsc",
+ "ring 0.17.0-alpha.11",
  "serde_json",
  "thiserror",
  "tracing",
  "tracing-subscriber",
+ "x509-certificate",
+ "yasna",
 ]
 
 [[package]]

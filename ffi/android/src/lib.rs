@@ -12,7 +12,7 @@ use jni::JNIEnv;
 
 use jpki::ap::crypto::CertType;
 use jpki::ap::CryptoAp;
-use jpki::{nfc, Card, ClientForAuth};
+use jpki::{nfc, Card};
 
 const NULL: jobject = 0 as jobject;
 
@@ -264,75 +264,6 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApClose(
     crypto_ap: jlong,
 ) {
     let _ = Box::from_raw(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_newClientForAuth(
-    env: JNIEnv,
-    _class: JClass,
-    delegate: jlong,
-) -> jlong {
-    wrap!(jlong, {
-        let ctx = JniContext { env };
-        let card = Box::from_raw(delegate as *mut JniNfcCard);
-        let client = ClientForAuth::create(ctx, card).map_err(Error::Apdu)?;
-
-        Ok(Box::into_raw(Box::new(client)) as jlong)
-    })
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_clientForAuthSign(
-    env: JNIEnv,
-    _class: JClass,
-    client: jlong,
-    pin: jstring,
-    message: jbyteArray,
-) -> jobject {
-    wrap!(jobject, {
-        let ctx = JniContext { env };
-        let pin = jstring_to_bytes_vec(env, pin)?;
-        let message = env.convert_byte_array(message).map_err(Error::Jni)?;
-
-        let client = &mut *(client as *mut ClientForAuth<JniNfcCard, JniContext>);
-        let mut signature = client.sign(ctx, pin, message).map_err(Error::Apdu)?;
-        let buffer = env
-            .new_direct_byte_buffer(&mut signature)
-            .map_err(Error::Jni)?;
-
-        Ok(buffer.into_inner())
-    })
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_clientForAuthVerify(
-    env: JNIEnv,
-    _class: JClass,
-    client: jlong,
-    message: jbyteArray,
-    signature: jbyteArray,
-) -> jboolean {
-    wrap!(jboolean, {
-        let ctx = JniContext { env };
-        let message = env.convert_byte_array(message).map_err(Error::Jni)?;
-        let signature = env.convert_byte_array(signature).map_err(Error::Jni)?;
-
-        let client = &mut *(client as *mut ClientForAuth<JniNfcCard, JniContext>);
-        let result = client
-            .verify(ctx, message, signature)
-            .map_err(Error::Apdu)?;
-
-        Ok(result.into())
-    })
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_clientForAuthClose(
-    _env: JNIEnv,
-    _class: JClass,
-    client: jlong,
-) {
-    let _ = Box::from_raw(client as *mut ClientForAuth<JniNfcCard, JniContext>);
 }
 
 fn jstring_to_bytes_vec(env: JNIEnv, str: jstring) -> Result<Vec<u8>, Error> {

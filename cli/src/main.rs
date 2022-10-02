@@ -1,4 +1,4 @@
-extern crate core;
+mod digest;
 
 use std::fs::File;
 use std::io::{stderr, stdin, stdout, Read, Write};
@@ -218,7 +218,7 @@ fn run() -> Result<()> {
                 }
                 CryptoApAction::Sign { signature_path } => {
                     let crypto_ap = open_crypto_ap()?;
-                    let digest = jpki::digest::calculate(read_all(stdin())?);
+                    let digest = digest::calculate(read_all(stdin())?);
                     let signature = match auth {
                         true => {
                             crypto_ap.auth((), pin_prompt(PIN_HINT_USER_AUTHENTICATION)?, digest)
@@ -235,7 +235,7 @@ fn run() -> Result<()> {
                 } => {
                     let certificate = read_all(File::open(certificate_path)?)?;
                     let signature = read_all(File::open(signature_path)?)?;
-                    if jpki::digest::verify(certificate, read_all(stdin())?, signature) {
+                    if digest::verify(certificate, read_all(stdin())?, signature) {
                         info!("OK")
                     } else {
                         error!("NG");
