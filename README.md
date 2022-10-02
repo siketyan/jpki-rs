@@ -20,11 +20,10 @@ Since this crate is fully cross-platform, we are welcome to add a new platform t
 Add to your Cargo.toml as a dependency as follows:
 ```toml
 [dependencies]
-jpki = "0.3"
+jpki = "0.4"
 ```
 
 ## ✨ Features
-- **digest**: Utility for calculating digests to sign or verify the data (non-default).
 - **pcsc**: PC/SC support for communicating with your cards (non-default).
 - **tracing**: Logging feature on tracing ecosystem (non-default).
 
