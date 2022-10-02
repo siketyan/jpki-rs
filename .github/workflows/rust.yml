@@ -17,22 +17,14 @@ jobs:
         with:
           submodules: true
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-v1-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-v1-
-
       - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
           components: rustfmt,clippy
+
+      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
 
       - name: Install libpcsclite
         run: sudo apt update && sudo apt install libpcsclite-dev
@@ -62,22 +54,14 @@ jobs:
         with:
           submodules: true
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-nightly-v1-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-nightly-v1-
-
       - name: Install nightly-2022-07-26
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2022-07-26
           override: true
           components: rustfmt,clippy
+
+      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
 
       - name: Install libpcsclite
         run: sudo apt update && sudo apt install libpcsclite-dev
@@ -155,22 +139,19 @@ jobs:
         with:
           submodules: true
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-v1-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-v1-
-
       - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
           target: ${{ matrix.target }}
+
+      - id: cache-key
+        run: echo "::set-output name=key::$(echo '${{ toJSON(matrix) }}' | shasum -a 256)"
+
+      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
+        with:
+          key: ${{ steps.cache-key.outputs.key }}
 
       - name: Install libpcsclite
         if: ${{ matrix.cli && startsWith(matrix.host, 'ubuntu-') }}
@@ -231,22 +212,16 @@ jobs:
         with:
           submodules: true
 
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-nightly-v1-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-nightly-v1-
-
       - name: Install nightly-2022-07-26
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2022-07-26
           override: true
           target: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
+        with:
+          key: ${{ matrix.features }}
 
       - name: Install libpcsclite
         run: sudo apt update && sudo apt install libpcsclite-dev
@@ -263,21 +238,13 @@ jobs:
     needs:
       - build
     steps:
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-v1-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-v1-
-
       - name: Install latest stable
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
+
+      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
 
       - name: Install libpcsclite
         run: sudo apt update && sudo apt install libpcsclite-dev
@@ -301,6 +268,7 @@ jobs:
             echo "Still waiting..."
             sleep 5
           done
+          cargo search --limit 0
 
       - name: Publish to crates.io (CLI)
         uses: actions-rs/cargo@v1
