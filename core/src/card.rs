@@ -106,6 +106,17 @@ where
             .and_then(|_| self.verify(ctx, pin))
     }
 
+    pub fn pin_status(&self, ctx: Ctx, ef: [u8; 2]) -> Result<u8, nfc::Error> {
+        match self
+            .select_ef(ctx, ef.into())
+            .and_then(|_| self.verify(ctx, vec![]))
+        {
+            Ok(_) => Ok(0),
+            Err(nfc::Error::VerifyFailed(count)) => Ok(count),
+            Err(e) => Err(e),
+        }
+    }
+
     /// Extracts the size of current file by reading DER-encoded ASN.1 header.
     pub fn read_der_size(&self, ctx: Ctx) -> Result<u16, nfc::Error> {
         let header = self.read(ctx, Some(7))?;
