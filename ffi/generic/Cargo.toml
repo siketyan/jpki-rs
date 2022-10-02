@@ -1,0 +1,14 @@
+[package]
+name = "jpki-ffi-generic"
+version = "0.3.0"
+edition = "2021"
+
+[lib]
+name = "jpki"
+crate-type = ["cdylib"]
+
+[dependencies]
+jpki = { version = "=0.3.0", path = "../../core" }
+
+[build-dependencies]
+cbindgen = "0.24"

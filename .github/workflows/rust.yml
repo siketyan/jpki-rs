@@ -41,7 +41,7 @@ jobs:
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --workspace
+          args: --workspace --exclude jpki-ffi-generic
 
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
@@ -53,7 +53,52 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --workspace --exclude jpki-ffi-android --verbose
+          args: --workspace --exclude jpki-ffi-generic --exclude jpki-ffi-android --verbose
+
+  checks-nightly:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-nightly-v1-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-nightly-v1-
+
+      - name: Install nightly-2022-07-26
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2022-07-26
+          override: true
+          components: rustfmt,clippy
+
+      - name: Install libpcsclite
+        run: sudo apt update && sudo apt install libpcsclite-dev
+
+      - name: Run clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: -p jpki-ffi-generic
+
+      - name: Run rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all --check
+
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: -p jpki-ffi-generic --verbose
 
   build:
     needs:
@@ -176,6 +221,41 @@ jobs:
         with:
           file: jpki-cli-${{ matrix.target }}.tar.gz
           overwrite: true
+
+  build-nightly:
+    needs:
+      - checks-nightly
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-nightly-v1-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-nightly-v1-
+
+      - name: Install nightly-2022-07-26
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2022-07-26
+          override: true
+          target: ${{ matrix.target }}
+
+      - name: Install libpcsclite
+        run: sudo apt update && sudo apt install libpcsclite-dev
+
+      - name: Build (FFI/Generic)
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --verbose --release --all-features -p jpki-ffi-generic
 
   deploy:
     runs-on: ubuntu-22.04
