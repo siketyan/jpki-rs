@@ -24,7 +24,7 @@ pub struct Attributes {
     _header: Vec<u8>,
     pub name: String,
     pub address: String,
-    pub date_or_birth: String,
+    pub date_of_birth: String,
     pub sex: Sex,
 }
 
