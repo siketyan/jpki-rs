@@ -1,7 +1,12 @@
 name: Rust
 
 on:
-  push: ~
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   release:
     types:
       - published
