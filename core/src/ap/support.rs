@@ -24,7 +24,7 @@ pub struct Attributes {
     _header: Vec<u8>,
     pub name: String,
     pub address: String,
-    pub date_or_birth: String,
+    pub date_of_birth: String,
     pub sex: Sex,
 }
 
@@ -34,7 +34,7 @@ impl<'a> From<&'a [u8]> for Attributes {
             _header: Vec::from(reader.read_auto()),
             name: reader.read_string(),
             address: reader.read_string(),
-            date_or_birth: reader.read_string(),
+            date_of_birth: reader.read_string(),
             sex: {
                 use Sex::*;
 
