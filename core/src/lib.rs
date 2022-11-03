@@ -1,5 +1,7 @@
 //! A crate to communicate with JPKI card through an APDU delegate.
 
+extern crate core;
+
 #[cfg(feature = "pcsc")]
 pub mod pcsc;
 

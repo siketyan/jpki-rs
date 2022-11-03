@@ -60,8 +60,18 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1652b8234499ae0340080124d45f20fe1f480a20c7e586f790ea5cf3a99152fc"
 dependencies = [
- "apdu-core",
- "apdu-derive",
+ "apdu-core 0.2.1",
+ "apdu-derive 0.2.1",
+ "thiserror",
+]
+
+[[package]]
+name = "apdu"
+version = "0.3.0"
+source = "git+https://github.com/siketyan/apdu-rs.git?rev=59c306b#59c306b4603cd2628507432065a0dc1036b36d2a"
+dependencies = [
+ "apdu-core 0.3.0",
+ "apdu-derive 0.3.0",
  "thiserror",
 ]
 
@@ -72,12 +82,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ba34a9f15207c5d020b1275c74019da4ef082fb24c35f28f3635f4954400e7c"
 
 [[package]]
+name = "apdu-core"
+version = "0.3.0"
+source = "git+https://github.com/siketyan/apdu-rs.git?rev=59c306b#59c306b4603cd2628507432065a0dc1036b36d2a"
+
+[[package]]
 name = "apdu-derive"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ef0bf68145998d15c17e34f226ac91f1137bf618fb5d28be6d381874a448832"
 dependencies = [
- "apdu-core",
+ "apdu-core 0.2.1",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "apdu-derive"
+version = "0.3.0"
+source = "git+https://github.com/siketyan/apdu-rs.git?rev=59c306b#59c306b4603cd2628507432065a0dc1036b36d2a"
+dependencies = [
+ "apdu-core 0.3.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -504,7 +530,7 @@ checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 name = "jpki"
 version = "0.4.1"
 dependencies = [
- "apdu",
+ "apdu 0.3.0",
  "hex",
  "pcsc",
  "serde",
@@ -516,7 +542,7 @@ dependencies = [
 name = "jpki-cli"
 version = "0.4.1"
 dependencies = [
- "apdu",
+ "apdu 0.2.1",
  "clap 4.0.8",
  "dialoguer",
  "hex",

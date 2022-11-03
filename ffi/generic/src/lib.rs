@@ -3,7 +3,7 @@
 
 use jpki::ap::crypto::CertType;
 use jpki::ap::CryptoAp;
-use jpki::nfc::{Command, HandlerInCtx, Response};
+use jpki::nfc::{HandleError, HandlerInCtx, Result as NfcResult};
 use jpki::Card;
 use std::ffi::{c_char, CStr, CString};
 use std::ptr::null_mut;
@@ -82,12 +82,17 @@ pub struct NfcCard {
 }
 
 impl HandlerInCtx for NfcCard {
-    fn handle_in_ctx(&self, _: (), command: Command) -> Response {
+    fn handle_in_ctx(&self, _: (), command: &[u8], response: &mut [u8]) -> NfcResult {
         let command = Vec::from(command).into();
-        let response = Response::from(Vec::from((self.delegate)(command)));
+        let buf = Vec::from((self.delegate)(command));
+        let len = buf.len();
+        if response.len() < len {
+            return Err(HandleError::NotEnoughBuffer(len));
+        }
 
+        response[..len].copy_from_slice(&buf);
         command.drain();
-        response
+        Ok(len)
     }
 }
 

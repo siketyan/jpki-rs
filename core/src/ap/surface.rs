@@ -3,7 +3,7 @@
 use std::rc::Rc;
 
 use crate::ap::open;
-use crate::{nfc, Card};
+use crate::{card, nfc, Card};
 
 const DF_NAME: [u8; 10] = [0xD3, 0x92, 0x10, 0x00, 0x31, 0x00, 0x01, 0x01, 0x04, 0x02];
 const EF_ID: [u8; 2] = [0x00, 0x02];
@@ -67,7 +67,7 @@ where
     open!(T, Ctx, DF_NAME);
 
     /// Reads the surface information as DER-encoded ASN.1 data.
-    pub fn read_surface_raw(&self, ctx: Ctx, pin: Pin) -> Result<Vec<u8>, nfc::Error> {
+    pub fn read_surface_raw(&self, ctx: Ctx, pin: Pin) -> Result<Vec<u8>, card::Error> {
         match pin {
             Pin::A(pin) => self.verify_pin_a(ctx, pin),
             Pin::B(pin) => self.verify_pin_b(ctx, pin),
@@ -78,26 +78,26 @@ where
     }
 
     /// Reads the surface information as decoded data.
-    pub fn read_surface(&self, ctx: Ctx, pin: Pin) -> Result<Surface, nfc::Error> {
+    pub fn read_surface(&self, ctx: Ctx, pin: Pin) -> Result<Surface, card::Error> {
         self.read_surface_raw(ctx, pin)
             .map(|info| Surface::from(info.as_slice()))
     }
 
     /// Gets the status of PIN type A.
-    pub fn pin_a_status(&self, ctx: Ctx) -> Result<u8, nfc::Error> {
+    pub fn pin_a_status(&self, ctx: Ctx) -> Result<u8, card::Error> {
         self.card.pin_status(ctx, EF_PIN_A)
     }
 
     /// Gets the status of PIN type B.
-    pub fn pin_b_status(&self, ctx: Ctx) -> Result<u8, nfc::Error> {
+    pub fn pin_b_status(&self, ctx: Ctx) -> Result<u8, card::Error> {
         self.card.pin_status(ctx, EF_PIN_B)
     }
 
-    fn verify_pin_a(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), nfc::Error> {
+    fn verify_pin_a(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), card::Error> {
         self.card.verify_pin(ctx, EF_PIN_A, pin)
     }
 
-    fn verify_pin_b(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), nfc::Error> {
+    fn verify_pin_b(&self, ctx: Ctx, pin: Vec<u8>) -> Result<(), card::Error> {
         self.card.verify_pin(ctx, EF_PIN_B, pin)
     }
 }

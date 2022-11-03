@@ -28,7 +28,7 @@ enum Error {
     Pcsc(#[from] jpki::pcsc::Error),
 
     #[error("The card returned an error: {0}")]
-    Apdu(#[from] jpki::nfc::Error),
+    Card(#[from] jpki::card::Error),
 
     #[error("JSON serializing / deserializing failed: {0}")]
     Json(#[from] serde_json::Error),
