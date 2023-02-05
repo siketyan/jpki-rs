@@ -38,7 +38,7 @@ impl<'a> From<&'a [u8]> for Attributes {
             sex: {
                 use Sex::*;
 
-                match reader.read_str().to_owned().as_ref() {
+                match reader.read_str().clone().as_ref() {
                     "1" => Male,
                     "2" => Female,
                     "9" => NotApplicable,

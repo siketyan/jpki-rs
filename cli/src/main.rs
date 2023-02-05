@@ -253,7 +253,7 @@ fn run() -> Result<()> {
                         _ => crypto_ap.sign_pin_status(()),
                     }?;
 
-                    println!("{}", count);
+                    println!("{count}");
                 }
             }
         }
@@ -291,7 +291,7 @@ fn run() -> Result<()> {
                     B => surface_ap.pin_b_status(()),
                 }?;
 
-                println!("{}", status);
+                println!("{status}");
             }
         },
         SubCommand::Support { action } => match action {
@@ -317,7 +317,7 @@ fn run() -> Result<()> {
                 let support_ap = open_support_ap()?;
                 let count = support_ap.pin_status(())?;
 
-                println!("{}", count)
+                println!("{count}")
             }
         },
     }
