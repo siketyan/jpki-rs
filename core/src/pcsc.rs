@@ -30,6 +30,7 @@
 //! ```
 
 use std::ffi::{CStr, CString};
+use std::io::Write;
 use std::marker::PhantomData;
 use std::thread::sleep;
 use std::time::Duration;
@@ -171,7 +172,7 @@ impl<'a> HandlerInCtx<Ctx> for PcscCard<'a> {
         &self,
         _: Ctx,
         command: &[u8],
-        response: &mut [u8],
+        mut response: &mut [u8],
     ) -> std::result::Result<usize, HandleError> {
         let tx = Vec::from(command);
         let rx = self.transmit(&tx).unwrap();
@@ -180,6 +181,9 @@ impl<'a> HandlerInCtx<Ctx> for PcscCard<'a> {
             return Err(HandleError::NotEnoughBuffer(len));
         }
 
-        Ok(len)
+        match response.write(&rx) {
+            Ok(size) => Ok(size),
+            Err(e) => Err(HandleError::Nfc(Box::new(e))),
+        }
     }
 }
