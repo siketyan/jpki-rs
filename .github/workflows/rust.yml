@@ -59,10 +59,10 @@ jobs:
         with:
           submodules: true
 
-      - name: Install nightly-2022-07-26
+      - name: Install nightly-2023-02-04
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2022-07-26
+          toolchain: nightly-2023-02-04
           override: true
           components: rustfmt,clippy
 
@@ -217,10 +217,10 @@ jobs:
         with:
           submodules: true
 
-      - name: Install nightly-2022-07-26
+      - name: Install nightly-2023-02-04
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2022-07-26
+          toolchain: nightly-2023-02-04
           override: true
           target: ${{ matrix.target }}
 
