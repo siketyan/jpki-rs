@@ -14,7 +14,7 @@ pub fn calculate(message: Vec<u8>) -> Vec<u8> {
 }
 
 pub fn verify(certificate: Vec<u8>, message: Vec<u8>, signature: Vec<u8>) -> bool {
-    let x509 = x509_certificate::X509Certificate::from_der(&certificate).unwrap();
+    let x509 = x509_certificate::X509Certificate::from_der(certificate).unwrap();
     let public_key = x509.public_key_data();
     let public_key = ring::signature::UnparsedPublicKey::new(
         &ring::signature::RSA_PKCS1_1024_8192_SHA1_FOR_LEGACY_USE_ONLY,

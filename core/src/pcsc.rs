@@ -34,12 +34,13 @@ use std::marker::PhantomData;
 use std::thread::sleep;
 use std::time::Duration;
 
+use apdu::core::HandleError;
 use pcsc::{Card, Protocols, Scope, ShareMode, MAX_BUFFER_SIZE};
 
 #[cfg(feature = "tracing")]
 use tracing::{debug, info};
 
-use crate::nfc::{Command, HandlerInCtx, Response};
+use crate::nfc::HandlerInCtx;
 
 #[cfg(not(feature = "tracing"))]
 macro_rules! debug {
@@ -166,10 +167,19 @@ impl<'a> PcscCard<'a> {
 type Ctx = ();
 
 impl<'a> HandlerInCtx<Ctx> for PcscCard<'a> {
-    fn handle_in_ctx(&self, _: Ctx, command: Command) -> Response {
+    fn handle_in_ctx(
+        &self,
+        _: Ctx,
+        command: &[u8],
+        response: &mut [u8],
+    ) -> std::result::Result<usize, HandleError> {
         let tx = Vec::from(command);
         let rx = self.transmit(&tx).unwrap();
+        let len = rx.len();
+        if response.len() < len {
+            return Err(HandleError::NotEnoughBuffer(len));
+        }
 
-        rx.into()
+        Ok(len)
     }
 }

@@ -12,7 +12,7 @@ use jni::JNIEnv;
 
 use jpki::ap::crypto::CertType;
 use jpki::ap::CryptoAp;
-use jpki::{nfc, Card};
+use jpki::{card, nfc, Card};
 
 const NULL: jobject = 0 as jobject;
 
@@ -20,8 +20,8 @@ static mut LAST_ERROR: Option<String> = None;
 
 #[derive(thiserror::Error, Debug)]
 enum Error {
-    #[error("APDU Error: {0}")]
-    Apdu(#[from] nfc::Error),
+    #[error("Card Error: {0}")]
+    Card(#[from] card::Error),
 
     #[error("JNI Error: {0}")]
     Jni(#[from] jni::errors::Error),
@@ -37,7 +37,7 @@ struct JniContext<'a> {
 }
 
 impl nfc::HandlerInCtx<JniContext<'_>> for JniNfcCard {
-    fn handle_in_ctx(&self, ctx: JniContext, command: nfc::Command) -> nfc::Response {
+    fn handle_in_ctx(&self, ctx: JniContext, command: &[u8], response: &mut [u8]) -> nfc::Result {
         let mut bytes = Vec::from(command);
         let buffer = ctx.env.new_direct_byte_buffer(&mut bytes).unwrap();
         let obj = self.delegate.as_obj();
@@ -54,24 +54,32 @@ impl nfc::HandlerInCtx<JniContext<'_>> for JniNfcCard {
         }
 
         let val = res.unwrap();
-
-        if let JValue::Object(obj) = val {
+        let buf = if let JValue::Object(obj) = val {
             let buffer = JByteBuffer::from(obj);
             match ctx.env.get_direct_buffer_address(buffer) {
                 Ok(bytes) => {
                     info!("APDU Response Received: {:?}", bytes);
 
-                    bytes.to_vec().into()
+                    bytes.to_vec()
                 }
                 Err(e) => {
                     error!("getDirectBufferAddress Error: {:?}", e);
 
-                    nfc::Response::new()
+                    return Err(nfc::HandleError::Nfc(Box::new(e)));
                 }
             }
         } else {
-            panic!("failed");
+            return Err(nfc::HandleError::Nfc(Box::new("failed")));
+        };
+
+        let len = buf.len();
+        if response.len() < len {
+            return Err(nfc::HandleError::NotEnoughBuffer(len));
         }
+
+        response[..len].copy_from_slice(&buf);
+
+        Ok(len)
     }
 }
 
@@ -200,7 +208,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApReadCertificat
         };
 
         let ap = &mut *(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
-        let mut certificate = ap.read_certificate(ctx, ty, pin).map_err(Error::Apdu)?;
+        let mut certificate = ap.read_certificate(ctx, ty, pin)?;
         let buffer = env
             .new_direct_byte_buffer(&mut certificate)
             .map_err(Error::Jni)?;
@@ -225,7 +233,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApReadCertificat
         };
 
         let ap = &mut *(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
-        let mut certificate = ap.read_certificate(ctx, ty, pin).map_err(Error::Apdu)?;
+        let mut certificate = ap.read_certificate(ctx, ty, pin)?;
         let buffer = env
             .new_direct_byte_buffer(&mut certificate)
             .map_err(Error::Jni)?;
@@ -248,7 +256,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApAuth(
         let digest = env.convert_byte_array(digest).map_err(Error::Jni)?;
 
         let ap = &mut *(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
-        let mut signature = ap.auth(ctx, pin, digest).map_err(Error::Apdu)?;
+        let mut signature = ap.auth(ctx, pin, digest)?;
         let buffer = env
             .new_direct_byte_buffer(&mut signature)
             .map_err(Error::Jni)?;
