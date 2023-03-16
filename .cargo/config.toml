@@ -1,7 +1,0 @@
-[target.aarch64-linux-android]
-ar = "android-ndk-r25c/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-linker = "android-ndk-r25c/toolchains/llvm/prebuilt/linux-x86_64/bin/ld"
-
-[target.armv7-linux-androideabi]
-ar = "android-ndk-r25c/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
-linker = "android-ndk-r25c/toolchains/llvm/prebuilt/linux-x86_64/bin/ld"
