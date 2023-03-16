@@ -165,33 +165,25 @@ jobs:
       - name: Install Android NDK
         if: ${{ matrix.android }}
         run: |
-          wget https://dl.google.com/android/repository/android-ndk-r23b-linux.zip
-          unzip android-ndk-r23b-linux.zip
-          export TOOLCHAIN="${PWD}/android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          echo "$TOOLCHAIN" >> $GITHUB_PATH
-          ln -s "$TOOLCHAIN/llvm-ar" "$TOOLCHAIN/${{ matrix.target }}-ar"
-          ln -s "$TOOLCHAIN/llvm-ar" "$TOOLCHAIN/arm-linux-androideabi-ar"
+          wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+          sha1sum android-ndk-r25c-linux.zip | grep '53af80a1cce9144025b81c78c8cd556bff42bd0e'
+          unzip android-ndk-r25c-linux.zip
+          echo "ANDROID_NDK_HOME=${PWD}/android-ndk-r25c" >> $GITHUB_ENV
+
+      - name: Install cargo-ndk
+        if: ${{ matrix.android }}
+        run: cargo install cargo-ndk
 
       - name: Build (Core)
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose --release --target=${{ matrix.target }} ${{ matrix.features }} ${{ matrix.additionalFeatures }} -p jpki
+        run: cargo +stable build --verbose --release --target=${{ matrix.target }} ${{ matrix.features }} ${{ matrix.additionalFeatures }} -p jpki
 
       - name: Build (CLI)
         if: ${{ matrix.cli }}
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose --release --target=${{ matrix.target }} -p jpki-cli
+        run: cargo +stable build --verbose --release --target=${{ matrix.target }} -p jpki-cli
 
       - name: Build (Android)
         if: ${{ matrix.android }}
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose --release --target=${{ matrix.target }} -p jpki-ffi-android
-          use-cross: true
+        run: cargo ndk --target=${{ matrix.target }} build --verbose --release -p jpki-ffi-android
 
       - name: Compress artifacts into .tar.gz file
         if: ${{ matrix.cli }}

@@ -38,8 +38,13 @@ struct JniContext<'a> {
 
 impl nfc::HandlerInCtx<JniContext<'_>> for JniNfcCard {
     fn handle_in_ctx(&self, ctx: JniContext, command: &[u8], response: &mut [u8]) -> nfc::Result {
-        let mut bytes = Vec::from(command);
-        let buffer = ctx.env.new_direct_byte_buffer(&mut bytes).unwrap();
+        let bytes = Vec::from(command).leak();
+        let buffer = unsafe {
+            ctx.env
+                .new_direct_byte_buffer(bytes.as_mut_ptr(), bytes.len())
+        }
+        .unwrap();
+
         let obj = self.delegate.as_obj();
         let arg_val = JValue::Object(JObject::from(buffer));
         let res = ctx.env.call_method(
@@ -56,28 +61,31 @@ impl nfc::HandlerInCtx<JniContext<'_>> for JniNfcCard {
         let val = res.unwrap();
         let buf = if let JValue::Object(obj) = val {
             let buffer = JByteBuffer::from(obj);
-            match ctx.env.get_direct_buffer_address(buffer) {
-                Ok(bytes) => {
-                    info!("APDU Response Received: {:?}", bytes);
-
-                    bytes.to_vec()
-                }
+            let ptr = match ctx.env.get_direct_buffer_address(buffer) {
+                Ok(ptr) => ptr,
                 Err(e) => {
                     error!("getDirectBufferAddress Error: {:?}", e);
-
                     return Err(nfc::HandleError::Nfc(Box::new(e)));
                 }
-            }
+            };
+            let cap = match ctx.env.get_direct_buffer_capacity(buffer) {
+                Ok(cap) => cap,
+                Err(e) => return Err(nfc::HandleError::Nfc(Box::new(e))),
+            };
+
+            unsafe { std::slice::from_raw_parts_mut(ptr, cap) }
         } else {
             return Err(nfc::HandleError::Nfc(Box::new("failed")));
         };
+
+        info!("APDU Response Received: {:?}", buf);
 
         let len = buf.len();
         if response.len() < len {
             return Err(nfc::HandleError::NotEnoughBuffer(len));
         }
 
-        response[..len].copy_from_slice(&buf);
+        response[..len].copy_from_slice(buf);
 
         Ok(len)
     }
@@ -145,7 +153,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_lastError(
     _class: JClass,
 ) -> jstring {
     match LAST_ERROR.clone() {
-        Some(message) => env.new_string(message).unwrap().into_inner(),
+        Some(message) => env.new_string(message).unwrap().into_raw(),
         None => 0 as jstring,
     }
 }
@@ -208,12 +216,12 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApReadCertificat
         };
 
         let ap = &mut *(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
-        let mut certificate = ap.read_certificate(ctx, ty, pin)?;
+        let certificate = ap.read_certificate(ctx, ty, pin)?.leak();
         let buffer = env
-            .new_direct_byte_buffer(&mut certificate)
+            .new_direct_byte_buffer(certificate.as_mut_ptr(), certificate.len())
             .map_err(Error::Jni)?;
 
-        Ok(buffer.into_inner())
+        Ok(buffer.into_raw())
     })
 }
 
@@ -233,12 +241,12 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApReadCertificat
         };
 
         let ap = &mut *(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
-        let mut certificate = ap.read_certificate(ctx, ty, pin)?;
+        let certificate = ap.read_certificate(ctx, ty, pin)?.leak();
         let buffer = env
-            .new_direct_byte_buffer(&mut certificate)
+            .new_direct_byte_buffer(certificate.as_mut_ptr(), certificate.len())
             .map_err(Error::Jni)?;
 
-        Ok(buffer.into_inner())
+        Ok(buffer.into_raw())
     })
 }
 
@@ -256,12 +264,12 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApAuth(
         let digest = env.convert_byte_array(digest).map_err(Error::Jni)?;
 
         let ap = &mut *(crypto_ap as *mut CryptoAp<JniNfcCard, JniContext>);
-        let mut signature = ap.auth(ctx, pin, digest)?;
+        let signature = ap.auth(ctx, pin, digest)?.leak();
         let buffer = env
-            .new_direct_byte_buffer(&mut signature)
+            .new_direct_byte_buffer(signature.as_mut_ptr(), signature.len())
             .map_err(Error::Jni)?;
 
-        Ok(buffer.into_inner())
+        Ok(buffer.into_raw())
     })
 }
 
@@ -276,7 +284,7 @@ pub unsafe extern "C" fn Java_jp_s6n_jpki_app_ffi_LibJpki_cryptoApClose(
 
 fn jstring_to_bytes_vec(env: JNIEnv, str: jstring) -> Result<Vec<u8>, Error> {
     Ok(env
-        .get_string(JString::from(str))
+        .get_string(unsafe { JString::from_raw(str) })
         .map_err(Error::Jni)?
         .to_bytes()
         .to_vec())
