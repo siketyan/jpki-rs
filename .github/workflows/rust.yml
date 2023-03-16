@@ -192,7 +192,6 @@ jobs:
         with:
           command: build
           args: --verbose --release --target=${{ matrix.target }} -p jpki-ffi-android
-          use-cross: true
 
       - name: Compress artifacts into .tar.gz file
         if: ${{ matrix.cli }}
