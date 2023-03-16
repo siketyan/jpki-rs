@@ -175,17 +175,11 @@ jobs:
         run: cargo install cargo-ndk
 
       - name: Build (Core)
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose --release --target=${{ matrix.target }} ${{ matrix.features }} ${{ matrix.additionalFeatures }} -p jpki
+        run: cargo +stable build --verbose --release --target=${{ matrix.target }} ${{ matrix.features }} ${{ matrix.additionalFeatures }} -p jpki
 
       - name: Build (CLI)
         if: ${{ matrix.cli }}
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose --release --target=${{ matrix.target }} -p jpki-cli
+        run: cargo +stable build --verbose --release --target=${{ matrix.target }} -p jpki-cli
 
       - name: Build (Android)
         if: ${{ matrix.android }}
