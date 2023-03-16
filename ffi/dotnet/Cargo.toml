@@ -1,0 +1,21 @@
+[package]
+name = "jpki-ffi-dotnet"
+description = "FFI binding of jpki-rs for C#, F#, and VB.NET."
+version = "0.4.2"
+license = "LGPL-2.1-or-later"
+homepage = "https://github.com/siketyan/jpki-rs"
+repository = "https://github.com/siketyan/jpki-rs.git"
+authors = [
+    # Thank you for your contribution!
+    # While contributing to this project, feel free to add your name here :)
+    "Naoki Ikeguchi <me@s6n.jp>",
+]
+readme = "../../README.md"
+edition = "2021"
+
+[dependencies]
+jpki = { version = "=0.4.2", path = "../../core" }
+jpki-ffi-generic = { version = "=0.4.2", path = "../generic" }
+
+[build-dependencies]
+csbindgen = "1.3"

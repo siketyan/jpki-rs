@@ -78,13 +78,13 @@ impl ByteArray {
 }
 
 pub struct NfcCard {
-    delegate: extern "C" fn(ByteArray) -> ByteArray,
+    delegate_: extern "C" fn(command: ByteArray) -> ByteArray,
 }
 
 impl HandlerInCtx for NfcCard {
     fn handle_in_ctx(&self, _: (), command: &[u8], response: &mut [u8]) -> NfcResult {
         let command = Vec::from(command).into();
-        let buf = Vec::from((self.delegate)(command));
+        let buf = Vec::from((self.delegate_)(command));
         let len = buf.len();
         if response.len() < len {
             return Err(HandleError::NotEnoughBuffer(len));
@@ -116,9 +116,9 @@ pub extern "C" fn jpki_last_error() -> *mut c_char {
 /// This provided function will be called on transmitting APDU commands into the card.
 #[no_mangle]
 pub extern "C" fn jpki_new_nfc_card(
-    delegate: extern "C" fn(ByteArray) -> ByteArray,
+    delegate_: extern "C" fn(command: ByteArray) -> ByteArray,
 ) -> *mut NfcCard {
-    let card = NfcCard { delegate };
+    let card = NfcCard { delegate_ };
 
     Box::into_raw(Box::new(card))
 }
