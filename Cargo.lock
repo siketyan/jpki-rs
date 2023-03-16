@@ -377,6 +377,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "der"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc906908ea6458456e5eaa160a9c08543ec3d1e6f71e2235cedd660cb65f9df0"
+dependencies = [
+ "const-oid",
+ "der_derive",
+ "zeroize",
+]
+
+[[package]]
+name = "der_derive"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "63898447d5453a504531990fb79708be1087effb2da9b2704f54dbdf8b6890e4"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "dialoguer"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -623,6 +646,7 @@ version = "0.4.2"
 dependencies = [
  "apdu",
  "clap 4.1.8",
+ "der 0.7.1",
  "dialoguer",
  "hex",
  "jpki",
@@ -635,7 +659,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "x509-certificate",
- "yasna",
 ]
 
 [[package]]
@@ -1113,7 +1136,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67cf02bbac7a337dc36e4f5a693db6c21e7863f45070f7064577eb4367a3212b"
 dependencies = [
  "base64ct",
- "der",
+ "der 0.6.1",
 ]
 
 [[package]]
@@ -1526,7 +1549,7 @@ dependencies = [
  "bcder",
  "bytes",
  "chrono",
- "der",
+ "der 0.6.1",
  "hex",
  "pem",
  "ring 0.16.20",
@@ -1543,12 +1566,6 @@ checksum = "56c1936c4cc7a1c9ab21a1ebb602eb942ba868cbd44a99cb7cdc5892335e1c85"
 dependencies = [
  "linked-hash-map",
 ]
-
-[[package]]
-name = "yasna"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aed2e7a52e3744ab4d0c05c20aa065258e84c49fd4226f5191b2ed29712710b4"
 
 [[package]]
 name = "zeroize"
