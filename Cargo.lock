@@ -652,7 +652,7 @@ dependencies = [
  "jpki",
  "once_cell",
  "pcsc",
- "ring 0.17.0-alpha.11",
+ "ring",
  "rust-i18n",
  "serde_json",
  "thiserror",
@@ -924,21 +924,6 @@ name = "ring"
 version = "0.16.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3053cf52e236a3ed746dfc745aa9cacf1b791d846bdaf412f60a8d7d6e17c8fc"
-dependencies = [
- "cc",
- "libc",
- "once_cell",
- "spin",
- "untrusted",
- "web-sys",
- "winapi",
-]
-
-[[package]]
-name = "ring"
-version = "0.17.0-alpha.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4575a179070909595bea5f999d67934737c2e0757a1eb9839af555917817b257"
 dependencies = [
  "cc",
  "libc",
@@ -1552,7 +1537,7 @@ dependencies = [
  "der 0.6.1",
  "hex",
  "pem",
- "ring 0.16.20",
+ "ring",
  "signature",
  "spki",
  "thiserror",
