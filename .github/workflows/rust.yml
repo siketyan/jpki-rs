@@ -17,77 +17,73 @@ env:
 jobs:
   checks:
     runs-on: ubuntu-22.04
+    permissions:
+      checks: write
+      contents: read
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
       - name: Install latest stable
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
           components: rustfmt,clippy
 
-      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
+      - uses: Swatinem/rust-cache@v2
 
       - name: Install libpcsclite
         run: sudo apt update && sudo apt install libpcsclite-dev
 
+#      - run: rm -f rust-toolchain.toml
+
       - name: Run clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --workspace --exclude jpki-ffi-generic
+        run: cargo +stable clippy --workspace --exclude jpki-ffi-generic
+
+#      - name: Run clippy
+#        uses: auguwu/clippy-action@1.3.0
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          check-args: --workspace,--exclude,jpki-ffi-generic
 
       - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all --check
+        run: cargo +stable fmt --all --check
 
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace --exclude jpki-ffi-generic --exclude jpki-ffi-android --verbose
+        run: cargo +stable test --workspace --exclude jpki-ffi-generic --exclude jpki-ffi-android --verbose
 
   checks-nightly:
     runs-on: ubuntu-22.04
+    permissions:
+      checks: write
+      contents: read
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
-      - name: Install nightly-2023-02-04
-        uses: actions-rs/toolchain@v1
+      - name: Install nightly-2023-10-20
+        uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: nightly-2023-02-04
-          override: true
+          toolchain: nightly-2023-10-20
           components: rustfmt,clippy
 
-      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
+      - uses: Swatinem/rust-cache@v2
 
       - name: Install libpcsclite
         run: sudo apt update && sudo apt install libpcsclite-dev
 
       - name: Run clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -p jpki-ffi-generic
+        run: cargo clippy -p jpki-ffi-generic
 
-      - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all --check
+#      - name: Run clippy
+#        uses: auguwu/clippy-action@1.3.0
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          check-args: --workspace,--exclude,jpki-ffi-generic
 
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p jpki-ffi-generic --verbose
+        run: cargo test -p jpki-ffi-generic --verbose
 
   build:
     needs:
@@ -113,13 +109,13 @@ jobs:
             android: false
             additionalFeatures: '--features pcsc'
           - target: x86_64-apple-darwin
-            host: macos-12
+            host: macos-13-large
             artifact: jpki-cli
             cli: true
             android: false
             additionalFeatures: '--features pcsc'
           - target: aarch64-apple-darwin
-            host: macos-12
+            host: macos-13-xlarge
             artifact: jpki-cli
             cli: true
             android: false
@@ -140,21 +136,19 @@ jobs:
 
     runs-on: ${{ matrix.host }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
       - name: Install latest stable
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
-          target: ${{ matrix.target }}
+          targets: ${{ matrix.target }}
 
       - id: cache-key
         run: echo "::set-output name=key::$(echo '${{ toJSON(matrix) }}' | shasum -a 256)"
 
-      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
+      - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ steps.cache-key.outputs.key }}
 
@@ -172,7 +166,7 @@ jobs:
 
       - name: Install cargo-ndk
         if: ${{ matrix.android }}
-        run: cargo install cargo-ndk
+        run: cargo +stable install cargo-ndk
 
       - name: Build (Core)
         run: cargo +stable build --verbose --release --target=${{ matrix.target }} ${{ matrix.features }} ${{ matrix.additionalFeatures }} -p jpki
@@ -183,7 +177,7 @@ jobs:
 
       - name: Build (Android)
         if: ${{ matrix.android }}
-        run: cargo ndk --target=${{ matrix.target }} build --verbose --release -p jpki-ffi-android
+        run: cargo +stable ndk --target=${{ matrix.target }} build --verbose --release -p jpki-ffi-android
 
       - name: Compress artifacts into .tar.gz file
         if: ${{ matrix.cli }}
@@ -205,18 +199,17 @@ jobs:
       - checks-nightly
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
-      - name: Install nightly-2023-02-04
-        uses: actions-rs/toolchain@v1
+      - name: Install nightly-2023-10-20
+        uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: nightly-2023-02-04
-          override: true
-          target: ${{ matrix.target }}
+          toolchain: nightly-2023-10-20
+          components: rustfmt,clippy
 
-      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
+      - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.features }}
 
@@ -224,10 +217,7 @@ jobs:
         run: sudo apt update && sudo apt install libpcsclite-dev
 
       - name: Build (FFI/Generic)
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose --release --all-features -p jpki-ffi-generic
+        run: cargo build --verbose --release --all-features -p jpki-ffi-generic
 
   deploy:
     runs-on: ubuntu-22.04
@@ -235,32 +225,23 @@ jobs:
     needs:
       - build
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
 
       - name: Install latest stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
-      - uses: Swatinem/rust-cache@76686c56f2b581d1bb5bda44b51f7e24bd9b8b8e
+      - uses: Swatinem/rust-cache@v2
 
       - name: Install libpcsclite
         run: sudo apt update && sudo apt install libpcsclite-dev
 
       - name: Log into crates.io
-        uses: actions-rs/cargo@v1
-        with:
-          command: login
-          args: ${{ secrets.CRATES_IO_TOKEN }}
+        run: cargo login ${{ secrets.CRATES_IO_TOKEN }}
 
       - name: Publish to crates.io (Core)
-        uses: actions-rs/cargo@v1
-        with:
-          command: publish
-          args: --verbose --allow-dirty -p jpki
+        run: cargo publish --verbose --allow-dirty -p jpki
 
       - name: Publish to crates.io (CLI)
         run: |
@@ -271,7 +252,4 @@ jobs:
           done
 
       - name: Publish to crates.io (FFI/Generic)
-        uses: actions-rs/cargo@v1
-        with:
-          command: publish
-          args: --verbose --allow-dirty -p jpki-ffi-generic
+        run: cargo publish --verbose --allow-dirty -p jpki-ffi-generic
