@@ -1,7 +1,7 @@
 [package]
 name = "jpki-ffi-generic"
 description = "Generic FFI binding of jpki-rs for C/C++ and many other languages."
-version = "0.4.2"
+version = "0.4.3"
 license = "LGPL-2.1-or-later"
 homepage = "https://github.com/siketyan/jpki-rs"
 repository = "https://github.com/siketyan/jpki-rs.git"
@@ -19,7 +19,7 @@ name = "jpki"
 crate-type = ["cdylib"]
 
 [dependencies]
-jpki = { version = "=0.4.2", path = "../../core" }
+jpki = { version = "=0.4.3", path = "../../core" }
 
 [build-dependencies]
 cbindgen = "0.24"

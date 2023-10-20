@@ -594,7 +594,7 @@ checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
 name = "jpki"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "apdu",
  "hex",
@@ -606,7 +606,7 @@ dependencies = [
 
 [[package]]
 name = "jpki-cli"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "apdu",
  "clap 4.4.6",
@@ -627,7 +627,7 @@ dependencies = [
 
 [[package]]
 name = "jpki-ffi-android"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "android_log",
  "jni",
@@ -638,7 +638,7 @@ dependencies = [
 
 [[package]]
 name = "jpki-ffi-generic"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "cbindgen",
  "jpki",
